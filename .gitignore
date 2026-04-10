@@ -1,0 +1,38 @@
+# ========================================
+# Ngambis.ai — Git Ignore
+# ========================================
+
+# ---- Java / Spring Boot ----
+target/
+*.class
+*.jar
+*.war
+*.pid
+
+# ---- Logs ----
+logs/
+*.log
+*.log.*.gz
+
+# ---- IDE ----
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ---- Maven Wrapper ----
+!.mvn/wrapper/maven-wrapper.jar
+
+# ---- Environment & Secrets ----
+.env
+
+# ---- Frontend (Vue/Vite) ----
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# ---- Docker ----
+docker-compose.override.yml

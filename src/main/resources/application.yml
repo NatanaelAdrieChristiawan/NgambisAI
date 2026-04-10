@@ -1,0 +1,170 @@
+spring:
+  application:
+    name: ngambis-ai
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:ngambis_ai}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Jakarta
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # HikariCP Configuration for optimal connection pooling
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      auto-commit: true
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false  # Disabled for production performance
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: false
+        # Batch processing for better performance
+        jdbc:
+          batch_size: 20
+          fetch_size: 50
+        order_inserts: true
+        order_updates: true
+        # Query plan cache
+        query:
+          plan_cache_max_size: 2048
+
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+      enabled: true
+
+  # Cache Configuration
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=3600s
+    cache-names:
+      - users
+      - documents
+      - quizSessions
+      - evaluations
+
+  # Redis Configuration (optional - for distributed caching)
+  redis:
+    enabled: ${REDIS_ENABLED:false}
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    timeout: 2000ms
+
+  # ========================================
+  # Google OAuth2 Configuration
+  # ========================================
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:your-google-client-id}
+            client-secret: ${GOOGLE_CLIENT_SECRET:your-google-client-secret}
+            scope:
+              - email
+              - profile
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: sub
+
+# ========================================
+# OAuth2 Frontend Redirect Configuration
+# ========================================
+app:
+  oauth2:
+    redirect-uri: http://localhost:5173/oauth2/callback
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:8f9d2c1e4a6b3f7d8e2c5a9b1d4f6e3a7c2b8e5d1f4a6c3b9e2d7f5a8c1b4e6d3}
+  expiration: 86400000  # 24 hours in milliseconds
+  refresh-expiration: 604800000  # 7 days in milliseconds
+
+# AI Integration Configuration
+ai:
+  gemini:
+    api-key: ${GEMINI_API_KEY}  # REMOVED hardcoded key - use environment variable only
+    base-url: https://generativelanguage.googleapis.com/v1beta
+    model: gemini-2.5-flash
+  # Speech-to-Text Configuration
+  # STT is now handled by browser's Web Speech API (FREE)
+  # Backend only receives pre-transcribed text → no server-side STT needed
+  stt:
+    language-code: id-ID  # Indonesian language (used for validation/logging)
+  # Rate limiting for AI calls per user
+  rate-limit:
+    calls-per-minute: 10
+    calls-per-hour: 100
+  # Optimized context configuration
+  context:
+    max-length: 2000
+    window-size: 2000
+    history-limit: 3
+    step-size: 200
+
+server:
+  port: 8080
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  http2:
+    enabled: true
+
+# Spring Boot Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+# API Documentation
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+  show-actuator: true
+
+logging:
+  level:
+    root: INFO
+    com.ngambis.ai: DEBUG
+    org.springframework.security: DEBUG
+    # Disable SQL logging in production
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/ngambis-ai.log
+    max-size: 10MB
+    max-history: 30
