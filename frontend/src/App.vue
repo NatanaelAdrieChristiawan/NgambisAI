@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
+import AuthModal from '@/components/AuthModal.vue'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -12,6 +13,10 @@ const showSidebar = computed(() => {
   const publicRoutes = ['Login', 'Register', 'OAuth2Callback', 'NotFound']
   return authStore.isAuthenticated && !publicRoutes.includes(route.name)
 })
+
+function handleAuthenticated() {
+  authStore.closeAuthModal()
+}
 </script>
 
 <template>
@@ -24,6 +29,14 @@ const showSidebar = computed(() => {
         </transition>
       </router-view>
     </main>
+
+    <!-- Global Auth Modal -->
+    <AuthModal
+      v-model="authStore.showAuthModal"
+      :message="authStore.authModalMessage"
+      :redirect-to="authStore.authModalRedirect"
+      @authenticated="handleAuthenticated"
+    />
   </div>
 </template>
 

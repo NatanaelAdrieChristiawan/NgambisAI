@@ -2,8 +2,8 @@
  * Ngambis.ai — Vue Router
  *
  * Route definitions with navigation guards.
- * Protected routes require authentication via JWT.
- * Public routes redirect authenticated users to dashboard.
+ * The Dashboard is public and acts as the landing page.
+ * Protected routes trigger auth modal for unauthenticated users.
  */
 
 import { createRouter, createWebHistory } from 'vue-router'
@@ -11,6 +11,12 @@ import { useAuthStore } from '@/stores/auth'
 
 const routes = [
   // ===== Public Routes =====
+  {
+    path: '/',
+    name: 'Dashboard',
+    component: () => import('@/views/DashboardView.vue'),
+    meta: { requiresAuth: false, title: 'Dashboard' }
+  },
   {
     path: '/login',
     name: 'Login',
@@ -31,12 +37,6 @@ const routes = [
   },
 
   // ===== Protected Routes =====
-  {
-    path: '/',
-    name: 'Dashboard',
-    component: () => import('@/views/DashboardView.vue'),
-    meta: { requiresAuth: true, title: 'Dashboard' }
-  },
   {
     path: '/upload',
     name: 'Upload',
@@ -92,14 +92,22 @@ router.beforeEach((to, from, next) => {
   const isAuthenticated = authStore.isAuthenticated
 
   if (to.meta.requiresAuth && !isAuthenticated) {
-    // Protected route but not logged in → redirect to login
-    next({ name: 'Login', query: { redirect: to.fullPath } })
+    // Protected route but not logged in → redirect to dashboard & show auth modal
+    next({ name: 'Dashboard' })
+
+    // Use nextTick to ensure the store is ready after navigation
+    setTimeout(() => {
+      authStore.requestAuth(
+        'Kamu perlu login terlebih dahulu untuk mengakses fitur ini.',
+        to.fullPath
+      )
+    }, 100)
   } else if (
     to.meta.requiresAuth === false &&
     isAuthenticated &&
-    to.name !== 'OAuth2Callback'
+    (to.name === 'Login' || to.name === 'Register')
   ) {
-    // Public route but already logged in → redirect to dashboard
+    // Already logged in trying to visit login/register → redirect to dashboard
     next({ name: 'Dashboard' })
   } else {
     next()

@@ -19,6 +19,11 @@ export const useAuthStore = defineStore('auth', () => {
   const loading = ref(false)
   const error = ref(null)
 
+  // Auth modal state
+  const showAuthModal = ref(false)
+  const authModalMessage = ref('')
+  const authModalRedirect = ref(null)
+
   // ===== Getters (Computed) =====
   const isAuthenticated = computed(() => !!accessToken.value)
   const userName = computed(() => user.value?.name || user.value?.username || '')
@@ -134,7 +139,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
-   * Logout — clear all auth state and redirect to login.
+   * Logout — clear all auth state and redirect to dashboard.
    */
   function logout() {
     user.value = null
@@ -145,7 +150,28 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
 
-    router.push({ name: 'Login' })
+    router.push({ name: 'Dashboard' })
+  }
+
+  /**
+   * Request authentication — opens the auth modal with an optional message.
+   * Call this from any component when a guest tries a protected action.
+   * @param {string} message - Message to show in the modal
+   * @param {string|null} redirectTo - Where to redirect after login
+   */
+  function requestAuth(message = '', redirectTo = null) {
+    authModalMessage.value = message
+    authModalRedirect.value = redirectTo
+    showAuthModal.value = true
+  }
+
+  /**
+   * Close the auth modal.
+   */
+  function closeAuthModal() {
+    showAuthModal.value = false
+    authModalMessage.value = ''
+    authModalRedirect.value = null
   }
 
   /**
@@ -190,6 +216,9 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken,
     loading,
     error,
+    showAuthModal,
+    authModalMessage,
+    authModalRedirect,
     // Getters
     isAuthenticated,
     userName,
@@ -204,6 +233,8 @@ export const useAuthStore = defineStore('auth', () => {
     fetchProfile,
     logout,
     initAuth,
-    clearError
+    clearError,
+    requestAuth,
+    closeAuthModal
   }
 })
