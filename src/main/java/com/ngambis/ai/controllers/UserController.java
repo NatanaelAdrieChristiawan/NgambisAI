@@ -1,11 +1,13 @@
 package com.ngambis.ai.controllers;
 
+import com.ngambis.ai.dtos.request.UpdateProfileRequest;
 import com.ngambis.ai.dtos.response.ApiResponse;
 import com.ngambis.ai.dtos.response.UserResponse;
 import com.ngambis.ai.services.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -60,6 +62,22 @@ public class UserController {
 
         return ResponseEntity.ok(
                 ApiResponse.success("User retrieved successfully.", user));
+    }
+
+    /**
+     * Update user profile (name, username, profilePicture).
+     */
+    @PutMapping("/{id}")
+    @Operation(summary = "Update user profile", description = "Updates user's name, username, or profile picture")
+    public ResponseEntity<ApiResponse<UserResponse>> updateProfile(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateProfileRequest request) {
+
+        log.info("PUT /api/users/{} — Update profile", id);
+        UserResponse updated = userService.updateProfile(id, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Profile updated successfully.", updated));
     }
 }
 

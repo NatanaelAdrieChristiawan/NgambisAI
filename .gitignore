@@ -36,3 +36,6 @@ frontend/.vite/
 
 # ---- Docker ----
 docker-compose.override.yml
+
+# ---- AI Agent Skills ----
+.agent/

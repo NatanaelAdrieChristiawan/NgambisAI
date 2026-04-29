@@ -32,8 +32,8 @@ public class QuizSessionController {
     public ResponseEntity<ApiResponse<QuizSessionResponse>> createSession(
             @Valid @RequestBody QuizSessionRequest request) {
 
-        log.info("POST /api/sessions — User: {}, Document: {}, Persona: {}",
-                request.getUserId(), request.getDocumentId(), request.getPersonaType());
+        log.info("POST /api/sessions — User: {}, Documents: {}, Persona: {}",
+                request.getUserId(), request.getDocumentIds(), request.getPersonaType());
 
         QuizSessionResponse response = quizSessionService.createSession(request);
 

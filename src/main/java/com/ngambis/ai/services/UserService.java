@@ -1,5 +1,6 @@
 package com.ngambis.ai.services;
 
+import com.ngambis.ai.dtos.request.UpdateProfileRequest;
 import com.ngambis.ai.dtos.request.UserRequest;
 import com.ngambis.ai.dtos.response.UserResponse;
 import com.ngambis.ai.exceptions.ResourceNotFoundException;
@@ -85,6 +86,35 @@ public class UserService implements UserDetailsService {
         User user = findById(userId);
         user.setLastLogin(java.time.LocalDateTime.now());
         userRepository.save(user);
+    }
+
+    /**
+     * Updates a user's profile (name, username, profilePicture).
+     * Validates username uniqueness before update.
+     */
+    @CacheEvict(value = "users", key = "#userId")
+    @Transactional
+    public UserResponse updateProfile(UUID userId, UpdateProfileRequest request) {
+        User user = findById(userId);
+
+        if (request.getUsername() != null && !request.getUsername().equals(user.getUsername())) {
+            if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+                throw new IllegalArgumentException("Username already taken: " + request.getUsername());
+            }
+            user.setUsername(request.getUsername());
+        }
+
+        if (request.getName() != null) {
+            user.setName(request.getName());
+        }
+
+        if (request.getProfilePicture() != null) {
+            user.setProfilePicture(request.getProfilePicture());
+        }
+
+        User saved = userRepository.save(user);
+        log.info("Profile updated for user: {}", saved.getId());
+        return toResponse(saved);
     }
 
     private UserResponse toResponse(User user) {

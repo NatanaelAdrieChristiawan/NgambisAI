@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ngambis.ai.dtos.response.AiEvaluationResponse;
+import com.ngambis.ai.dtos.response.GeneratedQuizItemDto;
 import com.ngambis.ai.exceptions.AiServiceException;
 import com.ngambis.ai.models.Evaluation;
 import io.micrometer.core.instrument.Counter;
@@ -123,6 +124,207 @@ public class AiIntegrationService {
      */
     public AiEvaluationResponse evaluateAnswer(String prompt) {
         return evaluateAnswer(prompt, Collections.emptyList());
+    }
+
+    /**
+     * Generates quiz/flashcard items from document text using Gemini AI.
+     *
+     * @param documentText  combined extracted text from document(s)
+     * @param questionCount number of questions to generate
+     * @param itemType      "MULTIPLE_CHOICE" or "ESSAY"
+     * @return list of generated quiz items
+     */
+    public List<GeneratedQuizItemDto> generateQuizItems(String documentText, int questionCount, String itemType) {
+        log.info("Generating {} {} questions via Gemini", questionCount, itemType);
+        incrementCounter("ai.gemini.generate.calls");
+
+        String context = documentText.length() > 8000 ? documentText.substring(0, 8000) : documentText;
+
+        String prompt;
+        Map<String, Object> schema;
+
+        if ("MULTIPLE_CHOICE".equals(itemType)) {
+            prompt = String.format(
+                "Kamu adalah pembuat soal ujian profesional. Berdasarkan teks dokumen berikut, " +
+                "buat %d soal pilihan ganda dalam Bahasa Indonesia.\n\n" +
+                "Teks Dokumen:\n%s\n\n" +
+                "Buat soal yang menguji pemahaman mendalam, bukan hafalan. " +
+                "Setiap soal harus memiliki 4 opsi (A, B, C, D) dan 1 jawaban benar.",
+                questionCount, context
+            );
+            schema = Map.of(
+                "type", "ARRAY",
+                "items", Map.of(
+                    "type", "OBJECT",
+                    "properties", Map.of(
+                        "questionText", Map.of("type", "STRING"),
+                        "options", Map.of(
+                            "type", "ARRAY",
+                            "items", Map.of("type", "STRING")
+                        ),
+                        "correctAnswer", Map.of("type", "STRING"),
+                        "referenceText", Map.of("type", "STRING")
+                    ),
+                    "required", List.of("questionText", "options", "correctAnswer", "referenceText")
+                )
+            );
+        } else {
+            prompt = String.format(
+                "Kamu adalah pembuat soal ujian profesional. Berdasarkan teks dokumen berikut, " +
+                "buat %d soal essay dalam Bahasa Indonesia.\n\n" +
+                "Teks Dokumen:\n%s\n\n" +
+                "Buat soal yang mendorong analisis dan pemahaman konsep mendalam.",
+                questionCount, context
+            );
+            schema = Map.of(
+                "type", "ARRAY",
+                "items", Map.of(
+                    "type", "OBJECT",
+                    "properties", Map.of(
+                        "questionText", Map.of("type", "STRING"),
+                        "referenceText", Map.of("type", "STRING")
+                    ),
+                    "required", List.of("questionText", "referenceText")
+                )
+            );
+        }
+
+        Map<String, Object> requestBody = Map.of(
+            "contents", List.of(Map.of(
+                "role", "user",
+                "parts", List.of(Map.of("text", prompt))
+            )),
+            "generationConfig", Map.of(
+                "temperature", 0.7,
+                "maxOutputTokens", 4096,
+                "responseMimeType", "application/json",
+                "responseSchema", schema
+            )
+        );
+
+        try {
+            String responseBody = webClient.post()
+                .uri("/models/{model}:generateContent?key={apiKey}", geminiModel, geminiApiKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(String.class)
+                .timeout(REQUEST_TIMEOUT)
+                .block();
+
+            return parseGeneratedItems(responseBody, itemType);
+
+        } catch (WebClientResponseException e) {
+            log.error("Gemini API error {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new AiServiceException("AI question generation failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Parses Gemini JSON array response into GeneratedQuizItemDto list.
+     */
+    private List<GeneratedQuizItemDto> parseGeneratedItems(String responseBody, String itemType) {
+        try {
+            JsonNode root = objectMapper.readTree(responseBody);
+            JsonNode parts = root.path("candidates").get(0).path("content").path("parts");
+
+            String generatedText = null;
+            for (JsonNode part : parts) {
+                if (part.has("thought") && part.get("thought").asBoolean()) continue;
+                if (part.has("text")) generatedText = part.get("text").asText();
+            }
+
+            if (generatedText == null || generatedText.isBlank()) {
+                throw new AiServiceException("Gemini returned empty quiz generation response");
+            }
+
+            generatedText = generatedText.trim()
+                .replaceAll("^```json", "").replaceAll("^```", "").replaceAll("```$", "").trim();
+
+            JsonNode itemsNode = objectMapper.readTree(generatedText);
+            List<GeneratedQuizItemDto> result = new ArrayList<>();
+
+            for (JsonNode item : itemsNode) {
+                GeneratedQuizItemDto dto = new GeneratedQuizItemDto();
+                dto.setItemType(itemType);
+                dto.setQuestionText(item.path("questionText").asText());
+                dto.setReferenceText(item.path("referenceText").asText(""));
+
+                if ("MULTIPLE_CHOICE".equals(itemType) && item.has("options")) {
+                    List<String> opts = new ArrayList<>();
+                    item.path("options").forEach(o -> opts.add(o.asText()));
+                    dto.setOptions(objectMapper.writeValueAsString(opts));
+                    dto.setCorrectAnswer(item.path("correctAnswer").asText());
+                }
+                result.add(dto);
+            }
+
+            log.info("Generated {} quiz items", result.size());
+            return result;
+
+        } catch (JsonProcessingException e) {
+            log.error("Failed to parse generated quiz items", e);
+            throw new AiServiceException("Failed to parse AI quiz generation response: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Sends a chat message to Gemini AI, preserving conversation history.
+     */
+    public String chatMessage(String prompt, List<Map<String, Object>> chatHistory) {
+        log.info("Sending chat message to Gemini, history size: {}", chatHistory.size());
+        incrementCounter("ai.gemini.chat.calls");
+
+        List<Map<String, Object>> contents = new ArrayList<>(chatHistory);
+        contents.add(Map.of(
+            "role", "user",
+            "parts", List.of(Map.of("text", prompt))
+        ));
+
+        Map<String, Object> requestBody = Map.of(
+            "contents", contents,
+            "generationConfig", Map.of(
+                "temperature", 0.7,
+                "maxOutputTokens", 2048
+            )
+        );
+
+        try {
+            String responseBody = webClient.post()
+                .uri("/models/{model}:generateContent?key={apiKey}", geminiModel, geminiApiKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(String.class)
+                .timeout(REQUEST_TIMEOUT)
+                .block();
+
+            return parseSimpleGeminiResponse(responseBody);
+        } catch (WebClientResponseException e) {
+            log.error("Gemini API error {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new AiServiceException("AI chat failed: " + e.getMessage(), e);
+        }
+    }
+
+    private String parseSimpleGeminiResponse(String responseBody) {
+        try {
+            JsonNode root = objectMapper.readTree(responseBody);
+            JsonNode parts = root.path("candidates").get(0).path("content").path("parts");
+
+            String generatedText = null;
+            for (JsonNode part : parts) {
+                if (part.has("thought") && part.get("thought").asBoolean()) continue;
+                if (part.has("text")) generatedText = part.get("text").asText();
+            }
+
+            if (generatedText == null || generatedText.isBlank()) {
+                throw new AiServiceException("Gemini returned empty text");
+            }
+            return generatedText.trim();
+        } catch (JsonProcessingException e) {
+            log.error("Failed to parse Gemini response", e);
+            throw new AiServiceException("Failed to parse AI response: " + e.getMessage(), e);
+        }
     }
 
     /**

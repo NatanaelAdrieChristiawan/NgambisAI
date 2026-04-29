@@ -1,6 +1,7 @@
 package com.ngambis.ai.services;
 
 import com.ngambis.ai.dtos.request.QuizSessionRequest;
+import com.ngambis.ai.dtos.response.GeneratedQuizItemDto;
 import com.ngambis.ai.dtos.response.QuizItemResponse;
 import com.ngambis.ai.dtos.response.QuizSessionResponse;
 import com.ngambis.ai.exceptions.ResourceNotFoundException;
@@ -30,37 +31,71 @@ public class QuizSessionService {
     private final UserRepository userRepository;
     private final DocumentRepository documentRepository;
     private final QuizItemRepository quizItemRepository;
+    private final AiIntegrationService aiIntegrationService;
 
     /**
-     * Creates a new quiz session and generates sample quiz items from the document.
+     * Creates a new quiz session and generates AI-powered quiz items from the document(s).
+     * Supports multiple documents — extracted texts are merged before generation.
      */
     @Transactional
     public QuizSessionResponse createSession(QuizSessionRequest request) {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", request.getUserId()));
 
-        Document document = documentRepository.findById(request.getDocumentId())
-                .orElseThrow(() -> new ResourceNotFoundException("Document", "id", request.getDocumentId()));
+        // Fetch all requested documents
+        List<Document> documents = documentRepository.findAllById(request.getDocumentIds());
+        if (documents.isEmpty()) {
+            throw new ResourceNotFoundException("Document", "ids", request.getDocumentIds());
+        }
 
-        log.info("Creating quiz session for user '{}', document '{}', persona: {}",
-                user.getUsername(), document.getFilename(), request.getPersonaType());
+        // Use first document as primary (for session FK); merge all texts for AI context
+        Document primaryDocument = documents.get(0);
+
+        // Merge extracted text from all documents
+        String mergedText = documents.stream()
+                .map(Document::getExtractedText)
+                .filter(text -> text != null && !text.isBlank())
+                .collect(java.util.stream.Collectors.joining("\n\n---\n\n"));
+
+        log.info("Creating quiz session for user '{}', {} document(s), persona: {}, type: {}, count: {}",
+                user.getUsername(), documents.size(), request.getPersonaType(),
+                request.getItemType(), request.getQuestionCount());
 
         QuizSession session = QuizSession.builder()
                 .user(user)
-                .document(document)
+                .document(primaryDocument)
                 .personaType(request.getPersonaType())
                 .build();
 
         QuizSession saved = quizSessionRepository.save(session);
 
-        // Create a sample essay quiz item using the document's extracted text
-        EssayItem essayItem = new EssayItem();
-        essayItem.setSession(saved);
-        essayItem.setQuestionText("Berdasarkan materi yang ada di dokumen, jelaskan konsep utama yang dibahas.");
-        essayItem.setReferenceText(document.getExtractedText());
-        quizItemRepository.save(essayItem);
+        // Generate AI questions
+        String itemType = request.getItemType() != null ? request.getItemType().toUpperCase() : "ESSAY";
+        int count = request.getQuestionCount() > 0 ? request.getQuestionCount() : 5;
 
-        log.info("Quiz session created with ID: {}, 1 essay item generated", saved.getId());
+        List<GeneratedQuizItemDto> generatedItems = aiIntegrationService.generateQuizItems(
+                mergedText, count, itemType);
+
+        // Persist generated items
+        for (GeneratedQuizItemDto dto : generatedItems) {
+            if ("MULTIPLE_CHOICE".equals(dto.getItemType())) {
+                MultipleChoiceItem mcItem = new MultipleChoiceItem();
+                mcItem.setSession(saved);
+                mcItem.setQuestionText(dto.getQuestionText());
+                mcItem.setReferenceText(dto.getReferenceText());
+                mcItem.setOptions(dto.getOptions());
+                mcItem.setCorrectAnswer(dto.getCorrectAnswer());
+                quizItemRepository.save(mcItem);
+            } else {
+                EssayItem essayItem = new EssayItem();
+                essayItem.setSession(saved);
+                essayItem.setQuestionText(dto.getQuestionText());
+                essayItem.setReferenceText(dto.getReferenceText());
+                quizItemRepository.save(essayItem);
+            }
+        }
+
+        log.info("Quiz session created — ID: {}, {} items generated", saved.getId(), generatedItems.size());
 
         return getSessionById(saved.getId());
     }
