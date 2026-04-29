@@ -2,8 +2,8 @@
  * Ngambis.ai — Vue Router
  *
  * Route definitions with navigation guards.
- * The Dashboard is public and acts as the landing page.
- * Protected routes trigger auth modal for unauthenticated users.
+ * Welcome page is the public landing page.
+ * Dashboard and other routes require authentication.
  */
 
 import { createRouter, createWebHistory } from 'vue-router'
@@ -13,9 +13,9 @@ const routes = [
   // ===== Public Routes =====
   {
     path: '/',
-    name: 'Dashboard',
-    component: () => import('@/views/DashboardView.vue'),
-    meta: { requiresAuth: false, title: 'Dashboard' }
+    name: 'Welcome',
+    component: () => import('@/views/WelcomeView.vue'),
+    meta: { requiresAuth: false, title: 'Welcome' }
   },
   {
     path: '/login',
@@ -37,6 +37,12 @@ const routes = [
   },
 
   // ===== Protected Routes =====
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: () => import('@/views/DashboardView.vue'),
+    meta: { requiresAuth: true, title: 'Dashboard' }
+  },
   {
     path: '/upload',
     name: 'Upload',
@@ -92,8 +98,8 @@ router.beforeEach((to, from, next) => {
   const isAuthenticated = authStore.isAuthenticated
 
   if (to.meta.requiresAuth && !isAuthenticated) {
-    // Protected route but not logged in → redirect to dashboard & show auth modal
-    next({ name: 'Dashboard' })
+    // Protected route but not logged in → redirect to Welcome & show auth modal
+    next({ name: 'Welcome' })
 
     // Use nextTick to ensure the store is ready after navigation
     setTimeout(() => {
@@ -103,11 +109,10 @@ router.beforeEach((to, from, next) => {
       )
     }, 100)
   } else if (
-    to.meta.requiresAuth === false &&
     isAuthenticated &&
-    (to.name === 'Login' || to.name === 'Register')
+    (to.name === 'Welcome' || to.name === 'Login' || to.name === 'Register')
   ) {
-    // Already logged in trying to visit login/register → redirect to dashboard
+    // Already logged in trying to visit welcome/login/register → redirect to dashboard
     next({ name: 'Dashboard' })
   } else {
     next()
