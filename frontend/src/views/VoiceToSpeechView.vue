@@ -12,7 +12,7 @@
 </template>
 
 <style scoped>
-.page-wrapper { padding: 3rem 1.5rem; display: flex; align-items: center; justify-content: center; min-height: 80vh; background: #F8FAFC; }
+.page-wrapper { padding: 3rem 1.5rem; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #FFFFFF; }
 .page-content { width: 100%; max-width: 500px; }
 .page-card { background: white; border: 1px solid #E2E8F0; border-radius: 16px; padding: 3rem; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.04); }
 .page-icon { font-size: 3.5rem; margin-bottom: 1rem; }

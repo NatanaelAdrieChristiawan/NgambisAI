@@ -7,7 +7,7 @@
 /* ===== CSS Variables (Design Tokens) ===== */
 :root {
   /* Primary palette */
-  --color-primary: #6c63ff;
+  --color-primary: #ffffff;
   --color-primary-light: #8b84ff;
   --color-primary-dark: #574fd9;
   --color-primary-glow: rgba(108, 99, 255, 0.3);

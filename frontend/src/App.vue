@@ -55,6 +55,7 @@ function handleAuthenticated() {
 .app-layout.with-sidebar .main-content {
   margin-left: var(--sidebar-width);
   transition: margin-left var(--transition-base);
+  background: #FFFFFF;
 }
 
 @media (max-width: 768px) {

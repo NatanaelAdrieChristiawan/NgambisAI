@@ -11,11 +11,11 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 const menuItems = [
-  { name: 'Dashboard', icon: 'dashboard', route: 'Dashboard' },
-  { name: 'AI Chat', icon: 'chat', route: 'AIChat' },
-  { name: 'Flashcards', icon: 'flashcards', route: 'Flashcards' },
-  { name: 'Quiz Mode', icon: 'quiz', route: 'QuizMode' },
-  { name: 'Voice To Speech', icon: 'voice', route: 'VoiceToSpeech' }
+  { name: 'Dashboard', icon: 'dashboard', route: 'Dashboard', theme: '#3B82F6' },
+  { name: 'AI Chat', icon: 'chat', route: 'AIChat', theme: '#3B82F6' },
+  { name: 'Flashcards', icon: 'flashcards', route: 'Flashcards', theme: '#3B82F6' },
+  { name: 'Quiz Mode', icon: 'quiz', route: 'QuizMode', theme: '#F59E0B' },
+  { name: 'Voice To Speech', icon: 'voice', route: 'VoiceToSpeech', theme: '#10B981' }
 ]
 
 const chatHistory = [
@@ -53,6 +53,7 @@ const isActive = (routeName) => route.name === routeName
         :to="{ name: item.route }"
         class="nav-item"
         :class="{ active: isActive(item.route) }"
+        :style="{ '--theme-color': item.theme, '--theme-bg': item.theme + '15' }"
       >
         <span class="nav-icon">
           <!-- Dashboard -->
@@ -173,8 +174,8 @@ const isActive = (routeName) => route.name === routeName
 }
 
 .nav-item.active {
-  color: #3B82F6;
-  background: #EFF6FF;
+  color: var(--theme-color, #3B82F6);
+  background: var(--theme-bg, #EFF6FF);
   font-weight: 600;
 }
 
@@ -186,7 +187,7 @@ const isActive = (routeName) => route.name === routeName
   transform: translateY(-50%);
   width: 3px;
   height: 60%;
-  background: #3B82F6;
+  background: var(--theme-color, #3B82F6);
   border-radius: 0 3px 3px 0;
 }
 
