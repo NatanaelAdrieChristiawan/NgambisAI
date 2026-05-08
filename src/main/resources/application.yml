@@ -1,6 +1,10 @@
 spring:
   application:
     name: ngambis-ai
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
 
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:ngambis_ai}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Jakarta
@@ -135,6 +139,9 @@ management:
       show-details: when-authorized
       probes:
         enabled: true
+  health:
+    redis:
+      enabled: false
   metrics:
     export:
       prometheus:

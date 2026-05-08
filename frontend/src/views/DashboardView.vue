@@ -27,14 +27,14 @@ const historyItems = ref([
 ])
 
 const learningTools = [
-  { icon: 'flashcard', iconBg: '#3B82F6', title: 'Smart Flashcards', description: 'Ubah catatan rumit menjadi kartu memori interaktif menggunakan AI. Cocok untuk menghafal terminologi OS.', tag: '24 Decks Tersedia', tagColor: '#3B82F6', action: 'Mulai Belajar', actionIcon: '↗', route: '/upload' },
-  { icon: 'voice', iconBg: '#10B981', title: 'Voice to Speech', description: 'Debat dengan AI dengan Real Time', tag: 'AI Transkripsi Aktif', tagColor: '#10B981', action: 'Berdebat', actionIcon: '🔊', route: '/simulator' },
-  { icon: 'quiz', iconBg: '#F59E0B', title: 'Adaptive Quiz', description: 'Tes pemahamanmu dengan kuis yang dipersonalisasi. Tingkat kesulitan menyesuaikan progres belajarmu.', tag: 'Level: Intermediate', tagColor: '#F59E0B', action: 'Ambil Quiz', actionIcon: '⚡', route: '/quiz' }
+  { icon: 'flashcard', iconBg: '#3B82F6', title: 'Smart Flashcards', description: 'Ubah catatan rumit menjadi kartu memori interaktif menggunakan AI. Cocok untuk menghafal terminologi OS.', tag: '24 Decks Tersedia', tagColor: '#3B82F6', action: 'Mulai Belajar', actionIcon: '↗', route: '/flashcards' },
+  { icon: 'voice', iconBg: '#10B981', title: 'Voice to Speech', description: 'Debat dengan AI dengan Real Time', tag: 'AI Transkripsi Aktif', tagColor: '#10B981', action: 'Berdebat', actionIcon: '🔊', route: '/voice-to-speech' },
+  { icon: 'quiz', iconBg: '#F59E0B', title: 'Adaptive Quiz', description: 'Tes pemahamanmu dengan kuis yang dipersonalisasi. Tingkat kesulitan menyesuaikan progres belajarmu.', tag: 'Level: Intermediate', tagColor: '#F59E0B', action: 'Ambil Quiz', actionIcon: '⚡', route: '/quiz-mode' }
 ]
 
-function handleNewChat() { router.push('/upload') }
+function handleNewChat() { router.push('/chat') }
 function handleToolClick(tool) { router.push(tool.route) }
-function handleStartSession() { router.push('/upload') }
+function handleStartSession() { router.push('/chat') }
 
 const isReady = ref(false)
 onMounted(() => { requestAnimationFrame(() => { isReady.value = true }) })

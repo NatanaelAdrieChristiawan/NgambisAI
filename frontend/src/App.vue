@@ -10,8 +10,8 @@ const authStore = useAuthStore()
 
 // Show sidebar only on authenticated pages (not on login/register/callback)
 const showSidebar = computed(() => {
-  const publicRoutes = ['Welcome', 'Dashboard', 'Login', 'Register', 'OAuth2Callback', 'NotFound']
-  return authStore.isAuthenticated && !publicRoutes.includes(route.name)
+  const noSidebarRoutes = ['Welcome', 'Dashboard', 'Login', 'Register', 'OAuth2Callback', 'NotFound']
+  return authStore.isAuthenticated && !noSidebarRoutes.includes(route.name)
 })
 
 function handleAuthenticated() {

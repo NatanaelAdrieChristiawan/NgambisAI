@@ -44,28 +44,34 @@ const routes = [
     meta: { requiresAuth: true, title: 'Dashboard' }
   },
   {
-    path: '/upload',
-    name: 'Upload',
-    component: () => import('@/views/UploadView.vue'),
-    meta: { requiresAuth: true, title: 'Upload PDF' }
+    path: '/chat',
+    name: 'AIChat',
+    component: () => import('@/views/AIChatView.vue'),
+    meta: { requiresAuth: true, title: 'AI Chat' }
   },
   {
-    path: '/quiz/:sessionId?',
-    name: 'Quiz',
-    component: () => import('@/views/QuizView.vue'),
-    meta: { requiresAuth: true, title: 'Quiz Session' }
+    path: '/flashcards',
+    name: 'Flashcards',
+    component: () => import('@/views/FlashcardsView.vue'),
+    meta: { requiresAuth: true, title: 'Flashcards' }
   },
   {
-    path: '/simulator',
-    name: 'Simulator',
-    component: () => import('@/views/SimulatorView.vue'),
-    meta: { requiresAuth: true, title: 'Simulator Ujian Lisan' }
+    path: '/quiz-mode',
+    name: 'QuizMode',
+    component: () => import('@/views/QuizModeView.vue'),
+    meta: { requiresAuth: true, title: 'Quiz Mode' }
   },
   {
-    path: '/history',
-    name: 'History',
-    component: () => import('@/views/HistoryView.vue'),
-    meta: { requiresAuth: true, title: 'Riwayat' }
+    path: '/voice-to-speech',
+    name: 'VoiceToSpeech',
+    component: () => import('@/views/VoiceToSpeechView.vue'),
+    meta: { requiresAuth: true, title: 'Voice To Speech' }
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: () => import('@/views/SettingsView.vue'),
+    meta: { requiresAuth: true, title: 'Settings' }
   },
 
   // ===== Catch-all 404 =====
