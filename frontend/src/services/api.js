@@ -15,7 +15,7 @@ import router from '@/router'
  * so baseURL is empty (relative paths). In production, set VITE_API_BASE_URL.
  */
 const api = axios.create({
-  baseURL: import.meta.env.PROD ? import.meta.env.VITE_API_BASE_URL : '',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '',
   headers: {
     'Content-Type': 'application/json'
   },

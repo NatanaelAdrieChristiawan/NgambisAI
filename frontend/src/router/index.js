@@ -18,18 +18,6 @@ const routes = [
     meta: { requiresAuth: false, title: 'Welcome' }
   },
   {
-    path: '/login',
-    name: 'Login',
-    component: () => import('@/views/auth/LoginView.vue'),
-    meta: { requiresAuth: false, title: 'Login' }
-  },
-  {
-    path: '/register',
-    name: 'Register',
-    component: () => import('@/views/auth/RegisterView.vue'),
-    meta: { requiresAuth: false, title: 'Register' }
-  },
-  {
     path: '/oauth2/callback',
     name: 'OAuth2Callback',
     component: () => import('@/views/auth/OAuth2CallbackView.vue'),
