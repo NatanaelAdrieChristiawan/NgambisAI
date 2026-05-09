@@ -81,6 +81,9 @@
   /* Sidebar */
   --sidebar-width: 260px;
   --sidebar-collapsed-width: 72px;
+
+  /* Mobile */
+  --mobile-breakpoint: 768px;
 }
 
 /* ===== CSS Reset ===== */
@@ -107,6 +110,11 @@ body {
   line-height: 1.6;
 }
 
+/* Prevent scroll when sidebar overlay is open on mobile */
+body.sidebar-open {
+  overflow: hidden;
+}
+
 a {
   color: var(--color-primary-light);
   text-decoration: none;
@@ -131,7 +139,7 @@ input, textarea, select {
   font-family: inherit;
 }
 
-/* ===== Scrollbar ===== */
+/* ===== Scrollbar (Light Theme) ===== */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -142,12 +150,12 @@ input, textarea, select {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.12);
   border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 /* ===== Utility Classes ===== */
@@ -166,6 +174,55 @@ input, textarea, select {
   box-shadow: var(--glass-shadow);
 }
 
+/* ===== Burger Button (Global) ===== */
+.burger-btn {
+  display: none; /* Hidden on desktop */
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: none;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.burger-btn:hover {
+  background: #F1F5F9;
+  color: #1E293B;
+}
+
+.burger-btn:active {
+  transform: scale(0.95);
+}
+
+@media (max-width: 768px) {
+  .burger-btn {
+    display: flex;
+  }
+}
+
+/* ===== Sidebar Backdrop ===== */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 150;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-backdrop.active {
+  display: block;
+  opacity: 1;
+}
+
+/* ===== Page Transitions ===== */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity var(--transition-base);

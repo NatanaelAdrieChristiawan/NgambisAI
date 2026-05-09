@@ -90,7 +90,7 @@ function handleOverlayClick(e) { if (e.target === e.currentTarget) closeModal() 
             <!-- Header -->
             <div class="modal-header">
               <div class="modal-logo">
-                <svg v-if="activeTab === 'login'" class="logo-icon" xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 4 3 6 3s6-1 6-3v-5"/></svg>
+              <img v-if="activeTab === 'login'" class="logo-icon" src="/logo/ngambis.png" alt="Ngambis.AI" width="30" height="30"/>
                 <h2><span class="brand-dark">NGAMBIS</span><span class="brand-accent">.AI</span></h2>
               </div>
               <p class="modal-subtitle">{{ activeTab === 'login' ? 'INTERACTIVE QUIZ & ORAL EXAM SIMULATOR' : 'PROTOKOL NGAMBIS.AI' }}</p>

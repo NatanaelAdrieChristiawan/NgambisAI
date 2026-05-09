@@ -58,4 +58,14 @@ public class ChatController {
         
         return ResponseEntity.ok(ApiResponse.success("User conversations retrieved", response));
     }
+
+    @DeleteMapping("/conversations/{id}")
+    @Operation(summary = "Delete conversation", description = "Deletes a conversation and all its messages")
+    public ResponseEntity<ApiResponse<Void>> deleteConversation(@PathVariable UUID id) {
+        log.info("DELETE /api/chat/conversations/{}", id);
+        
+        chatService.deleteConversation(id);
+        
+        return ResponseEntity.ok(ApiResponse.success("Conversation deleted successfully", null));
+    }
 }

@@ -39,10 +39,7 @@ function scrollToFeatures() {
     <header class="welcome-navbar">
       <div class="navbar-inner">
         <div class="navbar-brand">
-          <svg class="brand-icon" width="28" height="28" viewBox="0 0 32 32" fill="none">
-            <rect width="32" height="32" rx="8" fill="#3B82F6"/>
-            <path d="M10 22V12l6 4-6 4zM16 22V12l6 4-6 4z" fill="white" opacity="0.9"/>
-          </svg>
+          <img class="brand-icon" src="/logo/ngambis.png" alt="Ngambis.AI" width="28" height="28"/>
           <span class="brand-text">NGAMBIS<span class="brand-accent">.AI</span></span>
         </div>
         <nav class="navbar-actions">

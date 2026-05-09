@@ -82,4 +82,22 @@ public class DocumentController {
         return ResponseEntity.ok(
                 ApiResponse.success("Document retrieved successfully.", document));
     }
+
+    /**
+     * Delete a single document by its ID.
+     *
+     * @param documentId the document ID
+     * @return success message
+     */
+    @DeleteMapping("/{documentId}")
+    public ResponseEntity<ApiResponse<Void>> deleteDocument(
+            @PathVariable UUID documentId) {
+
+        log.info("DELETE /api/documents/{}", documentId);
+
+        documentService.deleteDocument(documentId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Document deleted successfully.", null));
+    }
 }

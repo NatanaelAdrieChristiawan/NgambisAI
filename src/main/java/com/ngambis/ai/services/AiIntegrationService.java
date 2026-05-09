@@ -170,10 +170,14 @@ public class AiIntegrationService {
             );
         } else {
             prompt = String.format(
-                "Kamu adalah pembuat soal ujian profesional. Berdasarkan teks dokumen berikut, " +
-                "buat %d soal essay dalam Bahasa Indonesia.\n\n" +
-                "Teks Dokumen:\n%s\n\n" +
-                "Buat soal yang mendorong analisis dan pemahaman konsep mendalam.",
+                "Kamu adalah pembuat flashcard belajar. Berdasarkan teks dokumen berikut, " +
+                "buat %d flashcard dalam Bahasa Indonesia.\n\n" +
+                "ATURAN PENTING:\n" +
+                "1. questionText: Buat pertanyaan yang SINGKAT dan JELAS, maksimal 1-2 kalimat saja. " +
+                "Langsung ke inti pertanyaan tanpa pengantar panjang.\n" +
+                "2. referenceText: Berikan JAWABAN yang ringkas dan tepat (3-5 kalimat), " +
+                "bukan copy-paste teks dokumen. Jawaban harus menjawab pertanyaan secara langsung.\n\n" +
+                "Teks Dokumen:\n%s",
                 questionCount, context
             );
             schema = Map.of(

@@ -1,14 +1,18 @@
 <script setup>
 /**
- * DashboardView.vue — Authenticated dashboard with light theme.
- * Has its own top navbar (no sidebar). Clean layout matching reference.
+ * DashboardView.vue — Authenticated dashboard with real conversation history.
+ * Has its own top navbar with burger menu for mobile.
  */
 import { useAuthStore } from '@/stores/auth'
+import { useChatStore } from '@/stores/chat'
 import { useRouter } from 'vue-router'
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, inject } from 'vue'
 
 const authStore = useAuthStore()
+const chatStore = useChatStore()
 const router = useRouter()
+const toggleSidebar = inject('toggleSidebar', () => {})
+
 const displayName = computed(() => authStore.userName || 'User')
 const avatarUrl = computed(() => authStore.userAvatar)
 const initials = computed(() => {
@@ -21,23 +25,54 @@ function toggleUserMenu() { showUserMenu.value = !showUserMenu.value }
 function closeUserMenu() { showUserMenu.value = false }
 function handleLogout() { authStore.logout(); closeUserMenu() }
 
-const historyItems = ref([
-  { id: 1, category: 'JARINGAN KOMPUTER', title: 'Protokol TCP/IP & Keamanan', lastEdited: 'Terakhir diedit 2 jam yang lalu' },
-  { id: 2, category: 'BASIS DATA', title: 'Normalisasi & Optimasi Query', lastEdited: 'Terakhir diedit 1 hari yang lalu' }
-])
+// Real history from API
+const historyLoading = ref(false)
+const historyItems = computed(() => {
+  return chatStore.sortedConversations.slice(0, 5).map(conv => ({
+    id: conv.id,
+    category: conv.documents?.[0]?.filename?.replace('.pdf','').toUpperCase() || 'CHAT',
+    title: conv.title || 'Percakapan Baru',
+    lastEdited: formatRelativeTime(conv.updatedAt || conv.createdAt)
+  }))
+})
+
+function formatRelativeTime(dateStr) {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diffMs = now - date
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 1) return 'Baru saja'
+  if (diffMins < 60) return `Terakhir diedit ${diffMins} menit yang lalu`
+  if (diffHours < 24) return `Terakhir diedit ${diffHours} jam yang lalu`
+  if (diffDays < 7) return `Terakhir diedit ${diffDays} hari yang lalu`
+  return `Terakhir diedit ${date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}`
+}
 
 const learningTools = [
-  { icon: 'flashcard', iconBg: '#3B82F6', title: 'Smart Flashcards', description: 'Ubah catatan rumit menjadi kartu memori interaktif menggunakan AI. Cocok untuk menghafal terminologi OS.', tag: '24 Decks Tersedia', tagColor: '#3B82F6', action: 'Mulai Belajar', actionIcon: '↗', route: '/flashcards' },
-  { icon: 'voice', iconBg: '#10B981', title: 'Voice to Speech', description: 'Debat dengan AI dengan Real Time', tag: 'AI Transkripsi Aktif', tagColor: '#10B981', action: 'Berdebat', actionIcon: '🔊', route: '/voice-to-speech' },
-  { icon: 'quiz', iconBg: '#F59E0B', title: 'Adaptive Quiz', description: 'Tes pemahamanmu dengan kuis yang dipersonalisasi. Tingkat kesulitan menyesuaikan progres belajarmu.', tag: 'Level: Intermediate', tagColor: '#F59E0B', action: 'Ambil Quiz', actionIcon: '⚡', route: '/quiz-mode' }
+  { icon: 'flashcard', iconBg: '#3B82F6', title: 'Smart Flashcards', description: 'Ubah catatan rumit menjadi kartu memori interaktif menggunakan AI. Cocok untuk menghafal terminologi OS.', tag: 'AI Generated', tagColor: '#3B82F6', action: 'Mulai Belajar', actionIcon: '↗', route: '/flashcards' },
+  { icon: 'voice', iconBg: '#10B981', title: 'Voice to Speech', description: 'Simulasi ujian lisan dengan AI. Jawab soal secara verbal dan dapatkan evaluasi instan.', tag: 'Web Speech API', tagColor: '#10B981', action: 'Mulai Simulasi', actionIcon: '🔊', route: '/voice-to-speech' },
+  { icon: 'quiz', iconBg: '#F59E0B', title: 'Adaptive Quiz', description: 'Tes pemahamanmu dengan kuis pilihan ganda yang dihasilkan AI dari dokumen kuliahmu.', tag: 'AI Powered', tagColor: '#F59E0B', action: 'Ambil Quiz', actionIcon: '⚡', route: '/quiz-mode' }
 ]
 
 function handleNewChat() { router.push('/chat') }
 function handleToolClick(tool) { router.push(tool.route) }
 function handleStartSession() { router.push('/chat') }
+function handleHistoryClick(item) { router.push({ path: '/chat', query: { conversationId: item.id } }) }
 
 const isReady = ref(false)
-onMounted(() => { requestAnimationFrame(() => { isReady.value = true }) })
+onMounted(async () => {
+  requestAnimationFrame(() => { isReady.value = true })
+  historyLoading.value = true
+  try {
+    await chatStore.loadConversations()
+  } finally {
+    historyLoading.value = false
+  }
+})
 </script>
 
 <template>
@@ -46,10 +81,10 @@ onMounted(() => { requestAnimationFrame(() => { isReady.value = true }) })
     <header class="dash-navbar">
       <div class="dash-navbar-inner">
         <div class="dash-brand">
-          <svg class="dash-brand-icon" width="28" height="28" viewBox="0 0 32 32" fill="none">
-            <rect width="32" height="32" rx="8" fill="#3B82F6"/>
-            <path d="M10 22V12l6 4-6 4zM16 22V12l6 4-6 4z" fill="white" opacity="0.9"/>
-          </svg>
+          <button class="burger-btn" @click.stop="toggleSidebar" aria-label="Menu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <img class="dash-brand-icon" src="/logo/ngambis.png" alt="Ngambis.AI" width="28" height="28"/>
           <span class="dash-brand-text">NGAMBIS<span class="dash-brand-accent">.AI</span></span>
         </div>
         <div class="dash-user-area" @click.stop>
@@ -98,12 +133,22 @@ onMounted(() => { requestAnimationFrame(() => { isReady.value = true }) })
             </div>
             <span class="new-label">OBROLAN BARU</span>
           </button>
-          <div v-for="item in historyItems" :key="item.id" class="h-card h-card-item">
+          <!-- Loading state -->
+          <div v-if="historyLoading && historyItems.length === 0" class="h-card h-card-item h-card-loading">
+            <div class="loading-pulse"></div>
+            <div class="loading-pulse short"></div>
+          </div>
+          <!-- Real history items -->
+          <div v-for="item in historyItems" :key="item.id" class="h-card h-card-item" @click="handleHistoryClick(item)" style="cursor: pointer;">
             <div class="h-card-head"><span class="h-cat">{{ item.category }}</span>
-              <button class="h-menu" aria-label="More"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
+              <button class="h-menu" aria-label="More" @click.stop><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
             </div>
             <h3 class="h-title">{{ item.title }}</h3>
             <span class="h-time">{{ item.lastEdited }}</span>
+          </div>
+          <!-- Empty state -->
+          <div v-if="!historyLoading && historyItems.length === 0" class="h-card h-card-item h-card-empty">
+            <p class="empty-text">Belum ada riwayat chat.<br/>Mulai percakapan baru!</p>
           </div>
         </div>
       </section>
@@ -112,10 +157,6 @@ onMounted(() => { requestAnimationFrame(() => { isReady.value = true }) })
       <section class="tools-section">
         <div class="tools-head">
           <h2 class="sec-label">Powerful Learning Tools</h2>
-          <div class="tools-nav">
-            <button class="tn-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-            <button class="tn-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
-          </div>
         </div>
         <div class="tools-grid">
           <button v-for="(tool, i) in learningTools" :key="tool.title" class="t-card" :style="{'--td': i * 0.1 + 's'}" @click="handleToolClick(tool)">
@@ -143,7 +184,7 @@ onMounted(() => { requestAnimationFrame(() => { isReady.value = true }) })
 
 /* Navbar */
 .dash-navbar { position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid #E2E8F0; }
-.dash-navbar-inner { max-width: 1100px; margin: 0 auto; padding: 0 2rem; height: 60px; display: flex; align-items: center; justify-content: space-between; }
+.dash-navbar-inner { max-width: 1100px; margin: 0 auto; padding: 0 2rem; height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
 .dash-brand { display: flex; align-items: center; gap: 0.5rem; }
 .dash-brand-text { font-size: 1rem; font-weight: 800; color: #1E293B; letter-spacing: 0.02em; }
 .dash-brand-accent { color: #3B82F6; }
@@ -199,13 +240,18 @@ onMounted(() => { requestAnimationFrame(() => { isReady.value = true }) })
 .h-title { font-size: 1rem; font-weight: 700; color: #0F172A; line-height: 1.35; margin-bottom: auto; }
 .h-time { font-size: 0.75rem; color: #94A3B8; margin-top: 1rem; }
 
+/* Loading & Empty states */
+.h-card-loading { align-items: center; justify-content: center; gap: 0.75rem; }
+.loading-pulse { width: 80%; height: 14px; background: #E2E8F0; border-radius: 6px; animation: pulse 1.5s infinite; }
+.loading-pulse.short { width: 50%; }
+@keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+.h-card-empty { align-items: center; justify-content: center; }
+.empty-text { font-size: 0.8125rem; color: #94A3B8; text-align: center; line-height: 1.6; }
+
 /* Tools */
 .tools-section { opacity: 0; transform: translateY(20px); transition: opacity 0.6s cubic-bezier(0.16,1,0.3,1) 0.2s, transform 0.6s cubic-bezier(0.16,1,0.3,1) 0.2s; }
 .dash-page.ready .tools-section { opacity: 1; transform: translateY(0); }
 .tools-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-.tools-nav { display: flex; gap: 0.375rem; }
-.tn-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid #E2E8F0; border-radius: 8px; color: #94A3B8; cursor: pointer; transition: all 0.2s; }
-.tn-btn:hover { background: #F1F5F9; color: #475569; border-color: #CBD5E1; }
 .tools-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
 .t-card { background: white; border: 1px solid #E2E8F0; border-radius: 14px; padding: 1.5rem; text-align: left; cursor: pointer; transition: all 0.3s; color: #1E293B; display: flex; flex-direction: column; opacity: 0; transform: translateY(16px); animation: tcIn 0.5s cubic-bezier(0.16,1,0.3,1) forwards; animation-delay: var(--td, 0s); animation-play-state: paused; }
 .dash-page.ready .t-card { animation-play-state: running; }
@@ -221,6 +267,7 @@ onMounted(() => { requestAnimationFrame(() => { isReady.value = true }) })
 
 /* Responsive */
 @media (max-width: 768px) {
+  .dash-navbar-inner { padding: 0 1rem; }
   .welcome-section { flex-direction: column; gap: 1rem; }
   .history-grid, .tools-grid { grid-template-columns: 1fr; }
   .btn-start { width: 100%; justify-content: center; }

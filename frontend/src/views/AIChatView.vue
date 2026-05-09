@@ -1,14 +1,20 @@
 <script setup>
-import { ref, computed, nextTick, onMounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onBeforeUnmount, inject, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useChatStore } from '@/stores/chat'
+import { useDocumentStore } from '@/stores/document'
+import DocumentManager from '@/components/shared/DocumentManager.vue'
 
+const route = useRoute()
 const authStore = useAuthStore()
+const chatStore = useChatStore()
+const docStore = useDocumentStore()
+const toggleSidebar = inject('toggleSidebar', () => {})
+
 const displayName = computed(() => authStore.userName || 'User')
 const avatarUrl = computed(() => authStore.userAvatar)
-const initials = computed(() => {
-  const n = displayName.value
-  return n.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
-})
+const initials = computed(() => displayName.value.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2))
 
 const showUserMenu = ref(false)
 function toggleUserMenu() { showUserMenu.value = !showUserMenu.value }
@@ -17,45 +23,95 @@ function handleLogout() { authStore.logout(); closeUserMenu() }
 
 const messageInput = ref('')
 const chatArea = ref(null)
-const isTyping = ref(false)
+const showDocPicker = ref(false)
+const sendError = ref(null)
 
-const messages = ref([
-  {
-    id: 1, type: 'user',
-    content: 'Halo Ngambis! Bisa tolong jelaskan apa itu Algoritma Dijkstra dan bagaimana cara kerjanya secara sederhana?'
-  },
-  {
-    id: 2, type: 'ai', content: '',
-    richContent: {
-      title: 'Memahami Algoritma Dijkstra',
-      intro: 'Bayangkan kamu sedang berada di sebuah kota besar dan ingin mencari jalur terpendek dari rumahmu ke kampus. Algoritma Dijkstra bekerja persis seperti Google Maps.',
-      definition: { label: 'Definisi Inti:', text: 'Algoritma Dijkstra digunakan untuk menemukan jalur terpendek antara simpul-simpul dalam graf, yang dapat mewakili, misalnya, jaringan jalan.' },
-      stepsIntro: 'Cara kerjanya secara bertahap:',
-      steps: [
-        'Tentukan titik awal dan berikan nilai "jarak" 0. Titik lainnya dianggap berjarak tak terhingga (∞).',
-        'Kunjungi tetangga dari titik aktif saat ini dan hitung total jaraknya.',
-        'Pilih tetangga dengan jarak terkecil sebagai titik aktif berikutnya.'
-      ]
+// Typewriter animation state
+const animatingMsgId = ref(null)
+const animatedText = ref('')
+let typewriterTimer = null
+
+function startTypewriter(msgId, fullContent) {
+  stopTypewriter()
+  animatingMsgId.value = msgId
+  animatedText.value = ''
+  const words = fullContent.split(/( )/)
+  let idx = 0
+  const chunkSize = 2 // reveal 2 tokens at a time for smooth pacing
+  const speed = 18 // ms per chunk
+
+  function tick() {
+    if (idx < words.length) {
+      animatedText.value += words.slice(idx, idx + chunkSize).join('')
+      idx += chunkSize
+      scrollToBottom()
+      typewriterTimer = setTimeout(tick, speed)
+    } else {
+      // Animation complete
+      animatingMsgId.value = null
+      animatedText.value = ''
     }
   }
-])
+  tick()
+}
 
-function handleNewChat() { messages.value = [] }
+function stopTypewriter() {
+  if (typewriterTimer) {
+    clearTimeout(typewriterTimer)
+    typewriterTimer = null
+  }
+  animatingMsgId.value = null
+  animatedText.value = ''
+}
+
+function getDisplayContent(msg) {
+  if (msg.id === animatingMsgId.value) {
+    return animatedText.value
+  }
+  return msg.content
+}
+
+const messages = computed(() => chatStore.messages)
+const isSending = computed(() => chatStore.sending)
+const isLoading = computed(() => chatStore.loading)
+
+function handleNewChat() {
+  chatStore.newChat()
+  docStore.clearSelection()
+  showDocPicker.value = false
+  sendError.value = null
+}
 
 async function sendMessage() {
   const text = messageInput.value.trim()
-  if (!text) return
-  messages.value.push({ id: Date.now(), type: 'user', content: text })
+  if (!text || isSending.value) return
+  sendError.value = null
+
+  // If no current conversation, need documents
+  if (!chatStore.currentConversation) {
+    if (docStore.selectedDocumentIds.length === 0) {
+      showDocPicker.value = true
+      sendError.value = 'Pilih minimal satu dokumen untuk memulai percakapan.'
+      return
+    }
+  }
+
   messageInput.value = ''
-  await nextTick()
-  scrollToBottom()
-  isTyping.value = true
-  setTimeout(() => {
-    messages.value.push({ id: Date.now() + 1, type: 'ai', content: 'Terima kasih atas pertanyaannya! Saya sedang memproses jawaban untuk kamu. Fitur AI Chat masih dalam tahap pengembangan — nantikan update selanjutnya! 🚀' })
-    isTyping.value = false
-    nextTick(() => scrollToBottom())
-  }, 1500)
+  try {
+    await chatStore.sendMessage(text, docStore.selectedDocumentIds)
+    await nextTick()
+    // Find the latest AI message and animate it
+    const lastAiMsg = [...messages.value].reverse().find(m => m.type === 'ai')
+    if (lastAiMsg && lastAiMsg.content) {
+      startTypewriter(lastAiMsg.id, lastAiMsg.content)
+    }
+    scrollToBottom()
+  } catch (err) {
+    sendError.value = chatStore.error || 'Gagal mengirim pesan'
+  }
 }
+
+
 
 function scrollToBottom() {
   if (chatArea.value) chatArea.value.scrollTop = chatArea.value.scrollHeight
@@ -65,78 +121,144 @@ function handleKeydown(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
 }
 
+function renderMarkdown(text) {
+  if (!text) return ''
+  return text
+    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="ai-code"><code>$2</code></pre>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code class="ai-inline-code">$1</code>')
+    .replace(/^\s*[-*]\s+(.+)/gm, '<li>$1</li>')
+    .replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
+    .replace(/<\/ul>\s*<ul>/g, '')
+    .replace(/^\s*(\d+)\.\s+(.+)/gm, '<li>$2</li>')
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+}
+
 const isReady = ref(false)
-onMounted(() => {
+onMounted(async () => {
   requestAnimationFrame(() => { isReady.value = true })
-  nextTick(() => scrollToBottom())
+  await docStore.loadDocuments()
+  const convId = route.query.conversationId
+  if (convId) {
+    await chatStore.loadConversation(convId)
+    await nextTick()
+    scrollToBottom()
+  }
+})
+
+watch(() => route.query.conversationId, async (newId) => {
+  if (newId) {
+    await chatStore.loadConversation(newId)
+    await nextTick()
+    scrollToBottom()
+  }
+})
+
+watch(messages, async () => {
+  await nextTick()
+  scrollToBottom()
+}, { deep: true })
+
+onBeforeUnmount(() => {
+  stopTypewriter()
 })
 </script>
 
 <template>
   <div class="chat-page" :class="{ ready: isReady }" @click="closeUserMenu">
     <header class="chat-header">
-      <button class="btn-new-chat" @click="handleNewChat">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-        <span>Chat Baru</span>
-      </button>
+      <div class="chat-header-left">
+        <button class="burger-btn" @click.stop="toggleSidebar" aria-label="Menu">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <button class="btn-new-chat" @click="handleNewChat">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          <span>Chat Baru</span>
+        </button>
+      </div>
       <div class="chat-user-area" @click.stop>
         <button class="chat-avatar-btn" @click="toggleUserMenu">
           <div v-if="avatarUrl" class="chat-avatar"><img :src="avatarUrl" :alt="displayName" referrerpolicy="no-referrer"/></div>
           <div v-else class="chat-avatar chat-avatar-initials">{{ initials }}</div>
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </button>
         <div v-if="showUserMenu" class="chat-user-dropdown">
           <div class="dd-info"><span class="dd-name">{{ displayName }}</span><span class="dd-email">{{ authStore.userEmail }}</span></div>
           <div class="dd-div"></div>
-          <button class="dd-item" @click="handleLogout">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            Logout
-          </button>
+          <button class="dd-item" @click="handleLogout">Logout</button>
         </div>
       </div>
     </header>
 
-    <div class="chat-messages" ref="chatArea">
+    <!-- Document Picker Overlay -->
+    <div v-if="showDocPicker" class="doc-picker-overlay" @click.self="showDocPicker = false">
+      <div class="doc-picker">
+        <button class="btn-close-modal" @click="showDocPicker = false" aria-label="Tutup">✕</button>
+        <h3>Pilih Dokumen Konteks</h3>
+        <p class="doc-picker-hint">Pilih dokumen PDF yang sudah diupload sebagai konteks untuk AI.</p>
+        <DocumentManager mode="list" />
+        <div class="doc-picker-actions">
+          <button class="btn-confirm-doc" @click="showDocPicker = false" :disabled="docStore.selectedDocumentIds.length === 0">
+            Gunakan ({{ docStore.selectedDocumentIds.length }})
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading state -->
+    <div v-if="isLoading" class="chat-loading">
+      <div class="loading-spinner"></div>
+      <span>Memuat percakapan...</span>
+    </div>
+
+    <div v-else class="chat-messages" ref="chatArea">
       <div class="messages-inner">
+        <!-- Empty state -->
+        <div v-if="messages.length === 0" class="chat-empty-state">
+          <div class="empty-icon">
+            <img src="/logo/ngambis.png" alt="Ngambis.AI" width="48" height="48" style="border-radius:14px;"/>
+          </div>
+          <h2>Halo! Saya Ngambis AI 👋</h2>
+          <p>Upload dokumen kuliah lalu tanyakan apapun. Saya akan membantu memahami materi.</p>
+          <button class="btn-pick-doc" @click="showDocPicker = true">📄 Pilih Dokumen & Mulai</button>
+        </div>
+
         <div v-for="msg in messages" :key="msg.id" class="msg-row" :class="msg.type">
           <div v-if="msg.type === 'user'" class="bubble-user">{{ msg.content }}</div>
           <div v-else class="ai-wrap">
-            <div class="ai-ava"><svg width="32" height="32" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="12" fill="#EEF2FF"/><path d="M12 28V16l8 5-8 5z" fill="#3B82F6"/><path d="M20 28V16l8 5-8 5z" fill="#60A5FA"/></svg></div>
+            <div class="ai-ava"><img src="/logo/ngambis.png" alt="AI" width="32" height="32" style="border-radius:10px;"/></div>
             <div class="ai-body">
-              <div class="ai-src"><span class="ai-src-lbl">NGAMBIS AI INSIGHT ✦</span>
-                <button class="ai-copy" title="Salin"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
-              </div>
-              <template v-if="msg.richContent">
-                <h2 class="ai-h2">{{ msg.richContent.title }}</h2>
-                <p class="ai-p">{{ msg.richContent.intro }}</p>
-                <div class="ai-def" v-if="msg.richContent.definition">
-                  <span class="ai-def-lbl">{{ msg.richContent.definition.label }}</span>
-                  <p>{{ msg.richContent.definition.text }}</p>
-                </div>
-                <p class="ai-p" v-if="msg.richContent.stepsIntro">{{ msg.richContent.stepsIntro }}</p>
-                <ol class="ai-steps" v-if="msg.richContent.steps">
-                  <li v-for="(step, i) in msg.richContent.steps" :key="i"><span class="sn">{{ i + 1 }}</span><span>{{ step }}</span></li>
-                </ol>
-              </template>
-              <p v-else class="ai-p">{{ msg.content }}</p>
+              <div class="ai-src"><span class="ai-src-lbl">NGAMBIS AI ✦</span></div>
+              <div class="ai-content" :class="{ 'is-typing': msg.id === animatingMsgId }" v-html="renderMarkdown(getDisplayContent(msg))"></div>
             </div>
           </div>
         </div>
-        <div v-if="isTyping" class="msg-row ai">
+
+        <div v-if="isSending" class="msg-row ai">
           <div class="ai-wrap">
-            <div class="ai-ava"><svg width="32" height="32" viewBox="0 0 40 40" fill="none"><rect width="40" height="40" rx="12" fill="#EEF2FF"/><path d="M12 28V16l8 5-8 5z" fill="#3B82F6"/><path d="M20 28V16l8 5-8 5z" fill="#60A5FA"/></svg></div>
+            <div class="ai-ava"><img src="/logo/ngambis.png" alt="AI" width="32" height="32" style="border-radius:10px;"/></div>
             <div class="ai-body"><div class="typing"><span></span><span></span><span></span></div></div>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- Error banner -->
+    <div v-if="sendError" class="chat-error" @click="sendError = null">
+      ⚠️ {{ sendError }} <span class="dismiss">✕</span>
+    </div>
+
     <div class="chat-input-area">
       <div class="input-wrap">
-        <button class="in-btn" title="Lampirkan file"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
-        <textarea v-model="messageInput" class="chat-input" placeholder="Tanyakan apapun tentang algoritma..." rows="1" @keydown="handleKeydown"></textarea>
-        <button class="in-btn" title="Voice input"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
-        <button class="send-btn" :class="{ active: messageInput.trim() }" @click="sendMessage" :disabled="!messageInput.trim()"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+        <button class="in-btn" title="Upload/Pilih dokumen" @click="showDocPicker = true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          <span v-if="docStore.selectedDocumentIds.length > 0" class="doc-badge">{{ docStore.selectedDocumentIds.length }}</span>
+        </button>
+        <textarea v-model="messageInput" class="chat-input" placeholder="Tanyakan apapun tentang materi kuliah..." rows="1" @keydown="handleKeydown" :disabled="isSending"></textarea>
+        <button class="send-btn" :class="{ active: messageInput.trim() && !isSending }" @click="sendMessage" :disabled="!messageInput.trim() || isSending">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
       </div>
       <p class="disclaimer">Ngambis.ai dapat membuat kesalahan. Pertimbangkan untuk memeriksa informasi penting.</p>
     </div>
@@ -146,9 +268,10 @@ onMounted(() => {
 <style scoped>
 .chat-page { display:flex; flex-direction:column; height:100vh; background:#F8FAFC; color:#1E293B; }
 
-.chat-header { display:flex; align-items:center; justify-content:space-between; padding:0.75rem 1.5rem; background:#fff; border-bottom:1px solid #E2E8F0; flex-shrink:0; z-index:10; }
+.chat-header { display:flex; align-items:center; justify-content:space-between; padding:0.75rem 1.5rem; background:#fff; border-bottom:1px solid #E2E8F0; flex-shrink:0; z-index:10; gap:0.75rem; }
+.chat-header-left { display:flex; align-items:center; gap:0.75rem; }
 .btn-new-chat { display:inline-flex; align-items:center; gap:0.5rem; padding:0.625rem 1.25rem; background:#3B82F6; color:#fff; border:none; border-radius:10px; font-size:0.875rem; font-weight:600; cursor:pointer; transition:all .25s; box-shadow:0 2px 8px rgba(59,130,246,.25); }
-.btn-new-chat:hover { background:#2563EB; transform:translateY(-1px); box-shadow:0 4px 16px rgba(59,130,246,.35); }
+.btn-new-chat:hover { background:#2563EB; }
 
 .chat-user-area { position:relative; }
 .chat-avatar-btn { display:flex; align-items:center; gap:.5rem; background:none; border:none; cursor:pointer; padding:4px; border-radius:10px; transition:background .2s; }
@@ -165,41 +288,59 @@ onMounted(() => {
 .dd-item { display:flex; align-items:center; gap:.5rem; width:100%; padding:.5rem .75rem; background:none; border:none; border-radius:8px; font-size:.8125rem; font-weight:500; color:#EF4444; cursor:pointer; transition:background .15s; }
 .dd-item:hover { background:#FEF2F2; }
 
+/* Chat Messages */
 .chat-messages { flex:1; overflow-y:auto; padding:1.5rem 0; }
 .messages-inner { max-width:780px; margin:0 auto; padding:0 1.5rem; display:flex; flex-direction:column; gap:1.5rem; }
 .msg-row { display:flex; animation:msgIn .4s cubic-bezier(.16,1,.3,1); }
 @keyframes msgIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
 .msg-row.user { justify-content:flex-end; }
-
 .bubble-user { max-width:70%; padding:.875rem 1.25rem; background:#3B82F6; color:#fff; border-radius:18px 18px 4px 18px; font-size:.9375rem; line-height:1.6; box-shadow:0 2px 8px rgba(59,130,246,.2); }
-
 .ai-wrap { display:flex; gap:.75rem; max-width:85%; }
 .ai-ava { flex-shrink:0; width:36px; height:36px; }
-.ai-ava svg { width:36px; height:36px; }
 .ai-body { flex:1; min-width:0; }
-.ai-src { display:flex; align-items:center; gap:.5rem; margin-bottom:.75rem; }
+.ai-src { display:flex; align-items:center; gap:.5rem; margin-bottom:.5rem; }
 .ai-src-lbl { font-size:.6875rem; font-weight:700; color:#3B82F6; letter-spacing:.06em; }
-.ai-copy { width:28px; height:28px; display:flex; align-items:center; justify-content:center; background:none; border:none; color:#94A3B8; border-radius:6px; cursor:pointer; transition:all .2s; }
-.ai-copy:hover { background:#F1F5F9; color:#3B82F6; }
-.ai-h2 { font-size:1.25rem; font-weight:700; color:#0F172A; margin-bottom:.75rem; line-height:1.3; }
-.ai-p { font-size:.9375rem; color:#475569; line-height:1.7; margin-bottom:1rem; }
-.ai-def { background:#F8FAFC; border-left:3px solid #3B82F6; border-radius:0 10px 10px 0; padding:1rem 1.25rem; margin:1rem 0; }
-.ai-def-lbl { display:block; font-size:.8125rem; font-weight:700; color:#3B82F6; margin-bottom:.375rem; }
-.ai-def p { font-size:.875rem; color:#475569; line-height:1.65; margin:0; }
-.ai-steps { list-style:none; padding:0; display:flex; flex-direction:column; gap:.75rem; }
-.ai-steps li { display:flex; gap:.75rem; align-items:flex-start; }
-.sn { flex-shrink:0; width:26px; height:26px; border-radius:50%; background:#EF4444; color:#fff; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; margin-top:2px; }
+.ai-content { font-size:.9375rem; color:#475569; line-height:1.7; }
+.ai-content.is-typing::after { content:''; display:inline-block; width:2px; height:1em; background:#3B82F6; margin-left:2px; vertical-align:text-bottom; animation:blink-cursor .6s steps(2) infinite; }
+@keyframes blink-cursor { 0%{opacity:1} 100%{opacity:0} }
+.ai-content :deep(strong) { color:#1E293B; font-weight:600; }
+.ai-content :deep(ul), .ai-content :deep(ol) { margin:.75rem 0; padding-left:1.5rem; }
+.ai-content :deep(li) { margin-bottom:.375rem; }
+.ai-content :deep(p) { margin-bottom:.75rem; }
+.ai-content :deep(.ai-code) { background:#F1F5F9; border:1px solid #E2E8F0; border-radius:8px; padding:1rem; margin:.75rem 0; overflow-x:auto; font-size:.8125rem; }
+.ai-content :deep(.ai-inline-code) { background:#F1F5F9; padding:.125rem .375rem; border-radius:4px; font-size:.85em; color:#2563EB; }
 
+/* Typing indicator */
 .typing { display:flex; gap:4px; padding:.75rem 0; }
 .typing span { width:8px; height:8px; border-radius:50%; background:#94A3B8; animation:bounce 1.4s infinite ease-in-out; }
 .typing span:nth-child(1){animation-delay:0s} .typing span:nth-child(2){animation-delay:.2s} .typing span:nth-child(3){animation-delay:.4s}
 @keyframes bounce { 0%,80%,100%{transform:scale(.6);opacity:.4} 40%{transform:scale(1);opacity:1} }
 
+/* Loading state */
+.chat-loading { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1rem; color:#94A3B8; font-size:.875rem; }
+.loading-spinner { width:32px; height:32px; border:3px solid #E2E8F0; border-top-color:#3B82F6; border-radius:50%; animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* Empty state */
+.chat-empty-state { text-align:center; padding:4rem 2rem; }
+.empty-icon { margin:0 auto 1.5rem; }
+.chat-empty-state h2 { font-size:1.5rem; font-weight:700; color:#0F172A; margin-bottom:.75rem; }
+.chat-empty-state p { color:#64748B; font-size:.9375rem; max-width:400px; margin:0 auto 1.5rem; line-height:1.6; }
+.btn-pick-doc { padding:.75rem 1.5rem; background:#3B82F6; color:#fff; border:none; border-radius:10px; font-size:.875rem; font-weight:600; cursor:pointer; transition:all .2s; }
+.btn-pick-doc:hover { background:#2563EB; transform:translateY(-2px); }
+
+/* Error banner */
+.chat-error { padding:.625rem 1.5rem; background:#FEF2F2; color:#DC2626; font-size:.8125rem; text-align:center; cursor:pointer; border-top:1px solid #FECACA; display:flex; align-items:center; justify-content:center; gap:.5rem; }
+.dismiss { font-weight:700; }
+
+/* Input area */
 .chat-input-area { flex-shrink:0; padding:.75rem 1.5rem 1rem; background:#fff; border-top:1px solid #E2E8F0; }
 .input-wrap { max-width:780px; margin:0 auto; display:flex; align-items:center; gap:.5rem; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:14px; padding:.5rem .75rem; transition:border-color .2s,box-shadow .2s; }
 .input-wrap:focus-within { border-color:#3B82F6; box-shadow:0 0 0 3px rgba(59,130,246,.1); }
-.in-btn { width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:none; border:none; color:#94A3B8; border-radius:8px; cursor:pointer; flex-shrink:0; transition:all .2s; }
+.in-btn { width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:none; border:none; color:#94A3B8; border-radius:8px; cursor:pointer; flex-shrink:0; transition:all .2s; position:relative; }
 .in-btn:hover { background:#E2E8F0; color:#475569; }
+.in-btn:disabled { opacity:.5; cursor:default; }
+.doc-badge { position:absolute; top:-2px; right:-2px; background:#3B82F6; color:#fff; font-size:.625rem; font-weight:700; min-width:16px; height:16px; border-radius:8px; display:flex; align-items:center; justify-content:center; padding:0 4px; border:2px solid #F8FAFC; box-sizing:content-box; line-height:1; }
 .chat-input { flex:1; border:none; background:transparent; font-size:.9375rem; color:#1E293B; resize:none; outline:none; line-height:1.5; max-height:120px; padding:.375rem 0; font-family:inherit; }
 .chat-input::placeholder { color:#94A3B8; }
 .send-btn { width:38px; height:38px; display:flex; align-items:center; justify-content:center; background:#CBD5E1; border:none; border-radius:10px; color:#fff; cursor:not-allowed; flex-shrink:0; transition:all .25s; }
@@ -207,5 +348,29 @@ onMounted(() => {
 .send-btn.active:hover { background:#2563EB; transform:scale(1.05); }
 .disclaimer { text-align:center; font-size:.6875rem; color:#94A3B8; margin-top:.5rem; }
 
-@media(max-width:768px) { .messages-inner{padding:0 1rem} .chat-header{padding:.75rem 1rem} .chat-input-area{padding:.75rem 1rem 1rem} .bubble-user{max-width:85%} .ai-wrap{max-width:95%} }
+/* Document Picker */
+.doc-picker-overlay { position:fixed; inset:0; background:rgba(0,0,0,.4); backdrop-filter:blur(4px); z-index:200; display:flex; align-items:center; justify-content:center; padding:1rem; }
+.doc-picker { position:relative; background:#fff; border-radius:16px; padding:2rem; max-width:500px; width:100%; max-height:80vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.15); }
+.btn-close-modal { position:absolute; top:1.25rem; right:1.5rem; background:none; border:none; font-size:1.25rem; color:#94A3B8; cursor:pointer; padding:0.25rem; transition:color 0.2s; line-height:1; }
+.btn-close-modal:hover { color:#0F172A; }
+.doc-picker h3 { font-size:1.125rem; font-weight:700; color:#0F172A; margin-bottom:.375rem; padding-right:1.5rem; }
+.doc-picker-hint { font-size:.8125rem; color:#64748B; margin-bottom:1.25rem; }
+.doc-list { display:flex; flex-direction:column; gap:.5rem; margin-bottom:1.25rem; }
+.doc-item { display:flex; align-items:center; gap:.75rem; padding:.75rem 1rem; border:1px solid #E2E8F0; border-radius:10px; cursor:pointer; transition:all .2s; }
+.doc-item:hover { background:#F8FAFC; }
+.doc-item.selected { border-color:#3B82F6; background:#EFF6FF; }
+.doc-item input[type="checkbox"] { accent-color:#3B82F6; width:16px; height:16px; }
+.doc-item-info { flex:1; min-width:0; }
+.doc-name { display:block; font-size:.875rem; font-weight:600; color:#1E293B; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.doc-meta { display:block; font-size:.6875rem; color:#94A3B8; margin-top:2px; }
+.doc-empty { padding:2rem; text-align:center; color:#94A3B8; font-size:.875rem; }
+.doc-picker-actions { display:flex; gap:.75rem; justify-content:flex-end; margin-top:1.5rem; }
+.btn-upload-doc { padding:.625rem 1rem; background:#F1F5F9; color:#475569; border:1px solid #E2E8F0; border-radius:8px; font-size:.8125rem; font-weight:600; cursor:pointer; transition:all .2s; }
+.btn-upload-doc:hover { background:#E2E8F0; }
+.btn-upload-doc:disabled { opacity:.5; cursor:default; }
+.btn-confirm-doc { padding:.625rem 1.25rem; background:#3B82F6; color:#fff; border:none; border-radius:8px; font-size:.8125rem; font-weight:600; cursor:pointer; transition:all .2s; }
+.btn-confirm-doc:hover { background:#2563EB; }
+.btn-confirm-doc:disabled { opacity:.5; cursor:default; }
+
+@media(max-width:768px) { .messages-inner{padding:0 1rem} .chat-header{padding:.75rem 1rem} .chat-input-area{padding:.75rem 1rem 1rem} .bubble-user{max-width:85%} .ai-wrap{max-width:95%} .doc-picker{margin:0 .5rem;padding:1.5rem} }
 </style>

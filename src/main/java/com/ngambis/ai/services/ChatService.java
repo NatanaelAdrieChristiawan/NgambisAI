@@ -123,6 +123,17 @@ public class ChatService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Deletes a conversation and all its messages.
+     */
+    @Transactional
+    public void deleteConversation(UUID conversationId) {
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Conversation", "id", conversationId));
+        conversationRepository.delete(conversation);
+        log.info("Conversation deleted with ID: {}", conversationId);
+    }
+
     private ConversationResponse toResponse(Conversation conv, List<ChatMessage> messages) {
         List<DocumentResponse> docResponses = conv.getDocuments().stream()
                 .map(d -> DocumentResponse.builder()

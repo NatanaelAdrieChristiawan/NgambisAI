@@ -2,8 +2,10 @@ package com.ngambis.ai.services;
 
 import com.ngambis.ai.dtos.response.DocumentResponse;
 import com.ngambis.ai.exceptions.ResourceNotFoundException;
+import com.ngambis.ai.models.Conversation;
 import com.ngambis.ai.models.Document;
 import com.ngambis.ai.models.User;
+import com.ngambis.ai.repositories.ConversationRepository;
 import com.ngambis.ai.repositories.DocumentRepository;
 import com.ngambis.ai.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ public class DocumentService {
 
     private final DocumentRepository documentRepository;
     private final UserRepository userRepository;
+    private final ConversationRepository conversationRepository;
     private final PdfExtractionService pdfExtractionService;
 
     private static final int TEXT_PREVIEW_LENGTH = 500;
@@ -83,6 +86,28 @@ public class DocumentService {
         Document document = documentRepository.findById(documentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Document", "id", documentId));
         return toResponse(document);
+    }
+
+    /**
+     * Deletes a document by its ID.
+     * Clears FK references from conversation_documents join table first,
+     * then cascades to quiz_sessions via CascadeType.ALL on the entity.
+     */
+    @Transactional
+    public void deleteDocument(UUID documentId) {
+        Document document = documentRepository.findById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document", "id", documentId));
+
+        // Remove document from all conversations' ManyToMany relationship
+        List<Conversation> conversations = conversationRepository.findAll();
+        for (Conversation conv : conversations) {
+            conv.getDocuments().remove(document);
+        }
+        conversationRepository.saveAll(conversations);
+
+        // Now safe to delete — quiz_sessions cascade via entity mapping
+        documentRepository.delete(document);
+        log.info("Document deleted with ID: {}", documentId);
     }
 
     /**

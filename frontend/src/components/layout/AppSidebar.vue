@@ -1,14 +1,25 @@
 <script setup>
 /**
- * AppSidebar.vue — Light-themed sidebar matching reference design.
- * Features: Logo + subtitle, navigation menu, chat history section, settings link.
+ * AppSidebar.vue — Light-themed sidebar with mobile overlay support.
+ * Features: Logo + subtitle, navigation menu, dynamic chat history, settings link.
+ * On mobile: opens as overlay with swipe-to-close gesture support.
  */
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useChatStore } from '@/stores/chat'
+import ConfirmModal from '@/components/shared/ConfirmModal.vue'
+
+const props = defineProps({
+  open: { type: Boolean, default: false }
+})
+
+const emit = defineEmits(['close'])
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
+const chatStore = useChatStore()
 
 const menuItems = [
   { name: 'Dashboard', icon: 'dashboard', route: 'Dashboard', theme: '#3B82F6' },
@@ -18,26 +29,120 @@ const menuItems = [
   { name: 'Voice To Speech', icon: 'voice', route: 'VoiceToSpeech', theme: '#10B981' }
 ]
 
-const chatHistory = [
-  { id: 1, title: 'Algoritma Dijkstra', time: '2 menit yang lalu', active: true },
-  { id: 2, title: 'Struktur Data Binary Tree', time: 'Kemarin', active: false },
-  { id: 3, title: 'Pengenalan Machine Learning', time: '3 hari yang lalu', active: false },
-  { id: 4, title: 'Analisis Kompleksitas Waktu', time: 'Minggu lalu', active: false }
-]
+// Dynamic chat history from store
+const chatHistory = computed(() => {
+  return chatStore.sortedConversations.slice(0, 8).map(conv => ({
+    id: conv.id,
+    title: conv.title || 'Percakapan Baru',
+    time: formatRelativeTime(conv.updatedAt || conv.createdAt),
+    active: chatStore.currentConversation?.id === conv.id
+  }))
+})
+
+function formatRelativeTime(dateStr) {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diffMs = now - date
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 1) return 'Baru saja'
+  if (diffMins < 60) return `${diffMins} menit yang lalu`
+  if (diffHours < 24) return `${diffHours} jam yang lalu`
+  if (diffDays < 7) return `${diffDays} hari yang lalu`
+  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
+}
+
+function handleChatClick(chat) {
+  router.push({ name: 'AIChat', query: { conversationId: chat.id } })
+  emit('close')
+}
+
+function handleNavClick() {
+  emit('close')
+}
+
+// Chat delete
+const showDeleteChat = ref(false)
+const deleteChatId = ref(null)
+const deleteChatTitle = ref('')
+
+function requestDeleteChat(chat, event) {
+  event.stopPropagation()
+  deleteChatId.value = chat.id
+  deleteChatTitle.value = chat.title
+  showDeleteChat.value = true
+}
+
+async function confirmDeleteChat() {
+  if (!deleteChatId.value) return
+  try {
+    await chatStore.deleteConversation(deleteChatId.value)
+    deleteChatId.value = null
+    deleteChatTitle.value = ''
+  } catch (err) {
+    console.error('Failed to delete conversation:', err)
+  }
+}
 
 const isActive = (routeName) => route.name === routeName
+
+// Load conversations on mount
+onMounted(async () => {
+  if (authStore.isAuthenticated) {
+    await chatStore.loadConversations()
+  }
+})
+
+// Refresh when auth changes
+watch(() => authStore.isAuthenticated, async (isAuth) => {
+  if (isAuth) await chatStore.loadConversations()
+})
+
+// ===== Swipe-to-close gesture =====
+const touchStartX = ref(0)
+const touchCurrentX = ref(0)
+const isSwiping = ref(false)
+
+function onTouchStart(e) {
+  touchStartX.value = e.touches[0].clientX
+  isSwiping.value = true
+}
+
+function onTouchMove(e) {
+  if (!isSwiping.value) return
+  touchCurrentX.value = e.touches[0].clientX
+}
+
+function onTouchEnd() {
+  if (!isSwiping.value) return
+  const diff = touchStartX.value - touchCurrentX.value
+  if (diff > 80) { // Swiped left — close sidebar
+    emit('close')
+  }
+  isSwiping.value = false
+}
 </script>
 
 <template>
-  <aside class="sidebar">
+  <aside
+    class="sidebar"
+    :class="{ open: open }"
+    @touchstart="onTouchStart"
+    @touchmove="onTouchMove"
+    @touchend="onTouchEnd"
+  >
+    <!-- Close button (mobile only) -->
+    <button class="sidebar-close-btn" @click="$emit('close')" aria-label="Tutup sidebar">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+
     <!-- Logo -->
     <div class="sidebar-logo">
       <div class="logo-icon-wrap">
-        <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-          <rect width="32" height="32" rx="8" fill="#3B82F6"/>
-          <path d="M10 22V12l6 4-6 4z" fill="white" opacity="0.9"/>
-          <path d="M16 22V12l6 4-6 4z" fill="white" opacity="0.6"/>
-        </svg>
+        <img src="/logo/ngambis.png" alt="Ngambis.AI" width="28" height="28"/>
       </div>
       <div>
         <h2>NGAMBIS<span class="accent">.AI</span></h2>
@@ -54,6 +159,7 @@ const isActive = (routeName) => route.name === routeName
         class="nav-item"
         :class="{ active: isActive(item.route) }"
         :style="{ '--theme-color': item.theme, '--theme-bg': item.theme + '15' }"
+        @click="handleNavClick"
       >
         <span class="nav-icon">
           <!-- Dashboard -->
@@ -71,25 +177,45 @@ const isActive = (routeName) => route.name === routeName
       </router-link>
     </nav>
 
+    <!-- Delete Chat Confirmation -->
+    <ConfirmModal
+      v-model="showDeleteChat"
+      title="Hapus Percakapan"
+      :message="`Apakah kamu yakin ingin menghapus percakapan '${deleteChatTitle}'? Semua pesan akan terhapus permanen.`"
+      confirmText="Ya, Hapus"
+      cancelText="Batal"
+      variant="danger"
+      @confirm="confirmDeleteChat"
+    />
+
     <!-- Chat History -->
     <div class="chat-history">
       <div class="history-label">RIWAYAT CHAT</div>
-      <div class="history-list">
+      <div class="history-list" v-if="chatHistory.length > 0">
         <div
           v-for="chat in chatHistory"
           :key="chat.id"
           class="history-item"
           :class="{ active: chat.active }"
+          @click="handleChatClick(chat)"
         >
           <span class="history-title">{{ chat.title }}</span>
-          <span class="history-time">{{ chat.time }}</span>
+          <div class="history-right">
+            <span class="history-time">{{ chat.time }}</span>
+            <button class="history-delete-btn" @click.stop="(e) => requestDeleteChat(chat, e)" title="Hapus chat">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
         </div>
+      </div>
+      <div v-else class="history-empty">
+        <span>Belum ada riwayat chat</span>
       </div>
     </div>
 
     <!-- Settings -->
     <div class="sidebar-footer">
-      <router-link :to="{ name: 'Settings' }" class="nav-item settings-link" :class="{ active: isActive('Settings') }">
+      <router-link :to="{ name: 'Settings' }" class="nav-item settings-link" :class="{ active: isActive('Settings') }" @click="handleNavClick">
         <span class="nav-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </span>
@@ -110,9 +236,30 @@ const isActive = (routeName) => route.name === routeName
   border-right: 1px solid #E2E8F0;
   display: flex;
   flex-direction: column;
-  z-index: 100;
+  z-index: 200;
   overflow-y: auto;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* Close button — mobile only */
+.sidebar-close-btn {
+  display: none;
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #94A3B8;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  z-index: 10;
+}
+.sidebar-close-btn:hover { background: #F1F5F9; color: #475569; }
 
 /* Logo */
 .sidebar-logo {
@@ -226,6 +373,10 @@ const isActive = (routeName) => route.name === routeName
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .history-item:hover {
@@ -244,6 +395,8 @@ const isActive = (routeName) => route.name === routeName
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
 }
 
 .history-item.active .history-title {
@@ -251,15 +404,66 @@ const isActive = (routeName) => route.name === routeName
   font-weight: 600;
 }
 
+.history-right {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
 .history-item .history-time {
-  display: block;
   font-size: 0.6875rem;
   color: #94A3B8;
-  margin-top: 2px;
+  white-space: nowrap;
 }
 
 .history-item.active .history-time {
   color: rgba(255, 255, 255, 0.7);
+}
+
+.history-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: #94A3B8;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.history-item:hover .history-delete-btn {
+  opacity: 1;
+}
+
+.history-delete-btn:hover {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+.history-item.active .history-delete-btn {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.history-item.active .history-delete-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.history-empty {
+  padding: 1rem 0.875rem;
+  text-align: center;
+}
+
+.history-empty span {
+  font-size: 0.75rem;
+  color: #94A3B8;
+  font-style: italic;
 }
 
 /* Footer / Settings */
@@ -272,14 +476,19 @@ const isActive = (routeName) => route.name === routeName
   margin-top: 0.25rem;
 }
 
+/* ===== MOBILE ===== */
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);
-    transition: transform 0.25s ease;
+    box-shadow: 10px 0 40px rgba(0, 0, 0, 0.15);
   }
 
   .sidebar.open {
     transform: translateX(0);
+  }
+
+  .sidebar-close-btn {
+    display: flex;
   }
 }
 </style>
