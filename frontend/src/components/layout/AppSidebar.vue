@@ -33,11 +33,25 @@ const menuItems = [
 
 // Dynamic flashcard history from store
 const flashcardHistory = computed(() => {
-  return [...quizStore.sessions].reverse().slice(0, 8).map(session => ({
+  return [...quizStore.sessions]
+    .filter(s => !s.itemType || s.itemType === 'MULTIPLE_CHOICE' || (!s.itemType && s.quizItems && s.quizItems.length > 0 && s.quizItems[0].itemType !== 'ESSAY'))
+    .reverse().slice(0, 8).map(session => ({
     id: session.id,
     title: session.documentFilename || session.document?.filename || 'Flashcard Session',
     time: formatRelativeTime(session.createdAt),
     active: quizStore.currentSession?.id === session.id && route.name === 'Flashcards'
+  }))
+})
+
+// Dynamic voice history from store
+const voiceHistory = computed(() => {
+  return [...quizStore.sessions]
+    .filter(s => s.itemType === 'ESSAY' || (s.quizItems && s.quizItems.length > 0 && s.quizItems[0].itemType === 'ESSAY'))
+    .reverse().slice(0, 8).map(session => ({
+    id: session.id,
+    title: session.documentFilename || session.document?.filename || 'Voice Session',
+    time: formatRelativeTime(session.createdAt),
+    active: quizStore.currentSession?.id === session.id && route.name === 'VoiceToSpeech'
   }))
 })
 
@@ -71,6 +85,15 @@ function handleSessionClick(session) {
   quizStore.loadSession(session.id).then(() => {
     if (route.name !== 'Flashcards') {
       router.push({ name: 'Flashcards' })
+    }
+  })
+  emit('close')
+}
+
+function handleVoiceClick(session) {
+  quizStore.loadSession(session.id).then(() => {
+    if (route.name !== 'VoiceToSpeech') {
+      router.push({ name: 'VoiceToSpeech' })
     }
   })
   emit('close')
@@ -218,7 +241,7 @@ function onTouchEnd() {
     />
 
     <!-- Dynamic History -->
-    <div class="chat-history" v-if="['AIChat', 'Flashcards'].includes(route.name)">
+    <div class="chat-history" v-if="['AIChat', 'Flashcards', 'VoiceToSpeech'].includes(route.name)">
       <template v-if="route.name === 'Flashcards'">
         <div class="history-label">RIWAYAT FLASHCARD</div>
         <div class="history-list" v-if="flashcardHistory.length > 0">
@@ -261,6 +284,26 @@ function onTouchEnd() {
         </div>
         <div v-else class="history-empty">
           <span>Belum ada riwayat chat</span>
+        </div>
+      </template>
+      <template v-else-if="route.name === 'VoiceToSpeech'">
+        <div class="history-label">RIWAYAT VOICE TO SPEECH</div>
+        <div class="history-list" v-if="voiceHistory.length > 0">
+          <div
+            v-for="session in voiceHistory"
+            :key="session.id"
+            class="history-item"
+            :class="{ active: session.active }"
+            @click="handleVoiceClick(session)"
+          >
+            <span class="history-title">{{ session.title }}</span>
+            <div class="history-right">
+              <span class="history-time">{{ session.time }}</span>
+            </div>
+          </div>
+        </div>
+        <div v-else class="history-empty">
+          <span>Belum ada riwayat voice to speech</span>
         </div>
       </template>
     </div>

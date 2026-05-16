@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, inject } from 'vue'
+import { ref, computed, onMounted, onUnmounted, inject, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useQuizStore } from '@/stores/quiz'
 import { useDocumentStore } from '@/stores/document'
@@ -48,6 +48,19 @@ onMounted(() => {
   speechSupported.value = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
   if (quizStore.quizItems.length > 0 && quizStore.currentQuestion?.itemType === 'ESSAY') {
     showSetup.value = false
+  }
+})
+
+watch(() => quizStore.currentSession, (newSession) => {
+  if (newSession && quizStore.quizItems.length > 0 && quizStore.currentQuestion?.itemType === 'ESSAY') {
+    showSetup.value = false
+    finished.value = false
+    evaluations.value = []
+    transcript.value = ''
+    evaluation.value = null
+    evalError.value = null
+  } else {
+    showSetup.value = true
   }
 })
 
@@ -210,8 +223,9 @@ onUnmounted(() => { stopRecording() })
       </div>
 
       <div class="vs-transcript" v-if="transcript || interimTranscript">
-        <label>Transkripsi:</label>
-        <p>{{ transcript }}<span class="interim">{{ interimTranscript }}</span></p>
+        <label>Transkripsi: <span v-if="!isRecording && !evaluation" class="edit-hint">(Bisa diedit)</span></label>
+        <p v-if="isRecording || evaluation">{{ transcript }}<span class="interim" v-if="isRecording">{{ interimTranscript }}</span></p>
+        <textarea v-else v-model="transcript" class="transcript-editor" rows="3"></textarea>
       </div>
 
       <div v-if="evalError" class="vs-error">{{ evalError }}</div>
@@ -283,8 +297,11 @@ onUnmounted(() => { stopRecording() })
 
 /* Transcript */
 .vs-transcript { background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:1.25rem; }
-.vs-transcript label { display:block; font-size:.6875rem; font-weight:700; color:#94A3B8; letter-spacing:.06em; margin-bottom:.5rem; }
-.vs-transcript p { font-size:.9375rem; color:#1E293B; line-height:1.6; } .interim { color:#94A3B8; font-style:italic; }
+.vs-transcript label { display:flex; align-items:center; font-size:.6875rem; font-weight:700; color:#94A3B8; letter-spacing:.06em; margin-bottom:.5rem; }
+.vs-transcript p { font-size:.9375rem; color:#1E293B; line-height:1.6; margin:0; } .interim { color:#94A3B8; font-style:italic; margin-left:4px; }
+.transcript-editor { width:100%; border:1px solid #E2E8F0; border-radius:8px; padding:.75rem; font-size:.9375rem; color:#1E293B; line-height:1.6; font-family:inherit; resize:vertical; background:#F8FAFC; outline:none; transition:border-color .2s; }
+.transcript-editor:focus { border-color:#3B82F6; background:#FFF; }
+.edit-hint { font-size:.6875rem; color:#3B82F6; font-weight:500; font-style:italic; margin-left:.5rem; letter-spacing:normal; text-transform:none; }
 .vs-error { padding:.625rem; background:#FEF2F2; color:#DC2626; border-radius:8px; font-size:.8125rem; text-align:center; }
 
 /* Evaluation */
