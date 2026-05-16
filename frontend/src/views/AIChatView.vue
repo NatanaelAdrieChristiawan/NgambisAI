@@ -532,17 +532,17 @@ onBeforeUnmount(() => {
 /* Attached File Chips (GPT-style) */
 .attached-files { max-width:780px; margin:0 auto .5rem; }
 .attached-files-inner { display:flex; flex-wrap:wrap; gap:.5rem; }
-.attached-chip { display:flex; align-items:center; gap:.625rem; padding:.5rem .75rem; background:#1E293B; border-radius:12px; max-width:280px; animation:chipIn .25s ease; }
+.attached-chip { display:flex; align-items:center; gap:.625rem; padding:.5rem .75rem; background:#fff; border:1px solid #E2E8F0; border-radius:12px; max-width:280px; animation:chipIn .25s ease; box-shadow:0 1px 3px rgba(0,0,0,.05); }
 @keyframes chipIn { from{opacity:0;transform:scale(.9)} to{opacity:1;transform:scale(1)} }
 .attached-chip.uploading { opacity:.7; }
 .attached-chip-icon { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#EF4444,#DC2626); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:#fff; }
-.attached-chip-icon.uploading-icon { background:#475569; }
-.chip-spinner { width:16px; height:16px; border:2px solid #94A3B8; border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
+.attached-chip-icon.uploading-icon { background:#CBD5E1; }
+.chip-spinner { width:16px; height:16px; border:2px solid #E2E8F0; border-top-color:#3B82F6; border-radius:50%; animation:spin .7s linear infinite; }
 .attached-chip-info { flex:1; min-width:0; }
-.attached-chip-name { display:block; font-size:.75rem; font-weight:600; color:#F1F5F9; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.attached-chip-name { display:block; font-size:.75rem; font-weight:600; color:#1E293B; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .attached-chip-type { display:block; font-size:.625rem; color:#94A3B8; margin-top:1px; }
-.attached-chip-remove { display:flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,.1); border:none; color:#94A3B8; cursor:pointer; flex-shrink:0; transition:all .15s; }
-.attached-chip-remove:hover { background:rgba(255,255,255,.2); color:#fff; }
+.attached-chip-remove { display:flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:#F1F5F9; border:none; color:#94A3B8; cursor:pointer; flex-shrink:0; transition:all .15s; }
+.attached-chip-remove:hover { background:#FEE2E2; color:#EF4444; }
 
 /* Chip pop transition */
 .chip-pop-enter-active { transition:all .25s ease; }
