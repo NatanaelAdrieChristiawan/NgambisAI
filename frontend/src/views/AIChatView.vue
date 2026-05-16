@@ -35,6 +35,58 @@ const chatArea = ref(null)
 const showDocPicker = ref(false)
 const sendError = ref(null)
 
+// Drag & drop state
+const isDraggingFile = ref(false)
+const dropUploadError = ref(null)
+const isDropUploading = ref(false)
+let dragLeaveTimer = null
+
+function onPageDragOver(e) {
+  e.preventDefault()
+  e.stopPropagation()
+  if (dragLeaveTimer) { clearTimeout(dragLeaveTimer); dragLeaveTimer = null }
+  if (e.dataTransfer?.types?.includes('Files')) {
+    isDraggingFile.value = true
+  }
+}
+
+function onPageDragLeave(e) {
+  e.preventDefault()
+  e.stopPropagation()
+  // Small delay to prevent flicker when moving between child elements
+  dragLeaveTimer = setTimeout(() => { isDraggingFile.value = false }, 100)
+}
+
+async function onPageDrop(e) {
+  e.preventDefault()
+  e.stopPropagation()
+  isDraggingFile.value = false
+  dropUploadError.value = null
+  if (dragLeaveTimer) { clearTimeout(dragLeaveTimer); dragLeaveTimer = null }
+
+  const files = e.dataTransfer?.files
+  if (!files || files.length === 0) return
+
+  const file = files[0]
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    dropUploadError.value = 'Hanya file PDF yang diizinkan.'
+    setTimeout(() => { dropUploadError.value = null }, 4000)
+    return
+  }
+
+  isDropUploading.value = true
+  try {
+    const doc = await docStore.uploadDocument(file)
+    docStore.selectDocument(doc.id)
+    dropUploadError.value = null
+  } catch (err) {
+    dropUploadError.value = err.response?.data?.message || err.message || 'Gagal mengupload dokumen.'
+    setTimeout(() => { dropUploadError.value = null }, 4000)
+  } finally {
+    isDropUploading.value = false
+  }
+}
+
 // Typewriter animation state
 const animatingMsgId = ref(null)
 const animatedText = ref('')
@@ -179,7 +231,35 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="chat-page" :class="{ ready: isReady }" @click="closeUserMenu">
+  <div class="chat-page" :class="{ ready: isReady }" @click="closeUserMenu"
+       @dragover="onPageDragOver" @dragleave="onPageDragLeave" @drop="onPageDrop">
+
+    <!-- Drag & Drop Overlay -->
+    <Transition name="fade">
+      <div v-if="isDraggingFile" class="drop-overlay">
+        <div class="drop-overlay-content">
+          <div class="drop-overlay-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <h3>Drop file PDF di sini</h3>
+          <p>File akan langsung diupload sebagai dokumen konteks</p>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Drop upload notification -->
+    <Transition name="slide-down">
+      <div v-if="isDropUploading" class="drop-notification uploading">
+        <div class="drop-notif-spinner"></div>
+        <span>Mengupload dokumen...</span>
+      </div>
+    </Transition>
+    <Transition name="slide-down">
+      <div v-if="dropUploadError" class="drop-notification error" @click="dropUploadError = null">
+        <span>⚠️ {{ dropUploadError }}</span>
+        <span class="dismiss">✕</span>
+      </div>
+    </Transition>
     <header class="chat-header">
       <div class="chat-header-left">
         <button class="burger-btn" @click.stop="toggleSidebar" aria-label="Menu">
@@ -300,7 +380,27 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.chat-page { display:flex; flex-direction:column; height:100vh; background:#F8FAFC; color:#1E293B; }
+.chat-page { display:flex; flex-direction:column; height:100vh; background:#F8FAFC; color:#1E293B; position:relative; }
+
+/* Drag & Drop Overlay */
+.drop-overlay { position:fixed; inset:0; z-index:999; background:rgba(59,130,246,.08); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; pointer-events:none; }
+.drop-overlay-content { text-align:center; padding:3rem; background:rgba(255,255,255,.92); border:2px dashed #3B82F6; border-radius:24px; box-shadow:0 20px 60px rgba(59,130,246,.15); }
+.drop-overlay-icon { color:#3B82F6; margin-bottom:1rem; animation:float-bounce 1.5s ease-in-out infinite; }
+@keyframes float-bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+.drop-overlay-content h3 { font-size:1.25rem; font-weight:700; color:#0F172A; margin-bottom:.375rem; }
+.drop-overlay-content p { font-size:.875rem; color:#64748B; }
+
+/* Drop Notification */
+.drop-notification { position:fixed; top:1rem; left:50%; transform:translateX(-50%); z-index:1000; display:flex; align-items:center; gap:.625rem; padding:.75rem 1.25rem; border-radius:12px; font-size:.8125rem; font-weight:600; box-shadow:0 8px 30px rgba(0,0,0,.12); }
+.drop-notification.uploading { background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE; }
+.drop-notif-spinner { width:18px; height:18px; border:2.5px solid #BFDBFE; border-top-color:#3B82F6; border-radius:50%; animation:spin .7s linear infinite; }
+.drop-notification.error { background:#FEF2F2; color:#DC2626; border:1px solid #FECACA; cursor:pointer; }
+
+/* Transitions */
+.fade-enter-active, .fade-leave-active { transition:opacity .25s ease; }
+.fade-enter-from, .fade-leave-to { opacity:0; }
+.slide-down-enter-active, .slide-down-leave-active { transition:all .3s ease; }
+.slide-down-enter-from, .slide-down-leave-to { opacity:0; transform:translateX(-50%) translateY(-1rem); }
 
 .chat-header { display:flex; align-items:center; justify-content:space-between; padding:0.75rem 1.5rem; background:#fff; border-bottom:1px solid #E2E8F0; flex-shrink:0; z-index:10; gap:0.75rem; }
 .chat-header-left { display:flex; align-items:center; gap:0.75rem; }
