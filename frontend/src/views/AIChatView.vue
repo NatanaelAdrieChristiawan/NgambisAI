@@ -184,20 +184,124 @@ function handleKeydown(e) {
 
 function renderMarkdown(text) {
   if (!text) return ''
-  return text
-    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="ai-code"><code>$2</code></pre>')
-    .replace(/^####\s+(.+)/gm, '<h4 class="md-h4">$1</h4>')
-    .replace(/^###\s+(.+)/gm, '<h3 class="md-h3">$1</h3>')
-    .replace(/^---$/gm, '<hr class="md-hr">')
+  
+  // Protect code blocks
+  const codes = []
+  let processed = text.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+    codes.push(`<pre class="ai-code"><code>${code.trim()}</code></pre>`)
+    return `\n__CODE_${codes.length - 1}__\n`
+  })
+
+  // Basic inline formatting
+  processed = processed
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/`([^`]+)`/g, '<code class="ai-inline-code">$1</code>')
-    .replace(/^\s*[-*]\s+(.+)/gm, '<li>$1</li>')
-    .replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
-    .replace(/<\/ul>\s*<ul>/g, '')
-    .replace(/^\s*(\d+)\.\s+(.+)/gm, '<li>$2</li>')
-    .replace(/\n{2,}/g, '</p><p>')
-    .replace(/\n/g, '<br>')
+
+  const lines = processed.split('\n')
+  const blocks = []
+  let currentList = null // { type: 'ul'|'ol', start: number, items: [] }
+  let currentParagraph = []
+
+  function flushParagraph() {
+    if (currentParagraph.length > 0) {
+      blocks.push(`<p>${currentParagraph.join('<br>')}</p>`)
+      currentParagraph = []
+    }
+  }
+
+  function flushList() {
+    if (currentList) {
+      const tag = currentList.type
+      const startAttr = currentList.start !== null && currentList.start !== 1 ? ` start="${currentList.start}"` : ''
+      const itemsHtml = currentList.items.map(item => `<li>${item}</li>`).join('')
+      blocks.push(`<${tag} class="md-${tag}"${startAttr}>${itemsHtml}</${tag}>`)
+      currentList = null
+    }
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    
+    // Empty line -> flush
+    if (line === '') {
+      flushParagraph()
+      flushList()
+      continue
+    }
+
+    // Code blocks
+    if (line.startsWith('__CODE_')) {
+      flushParagraph()
+      flushList()
+      blocks.push(line)
+      continue
+    }
+
+    // Headers
+    const hMatch = line.match(/^(#{1,4})\s+(.+)/)
+    if (hMatch) {
+      flushParagraph()
+      flushList()
+      const level = hMatch[1].length
+      blocks.push(`<h${level} class="md-h${level}">${hMatch[2]}</h${level}>`)
+      continue
+    }
+
+    // HR
+    if (line === '---') {
+      flushParagraph()
+      flushList()
+      blocks.push('<hr class="md-hr">')
+      continue
+    }
+
+    // Ordered list
+    const olMatch = line.match(/^(\d+)\.(?:\s+(.*)|\s*)$/)
+    if (olMatch) {
+      flushParagraph()
+      if (currentList && currentList.type !== 'ol') flushList()
+      
+      const content = olMatch[2] || ''
+      if (!currentList) {
+        currentList = { type: 'ol', start: parseInt(olMatch[1], 10), items: [content] }
+      } else {
+        currentList.items.push(content)
+      }
+      continue
+    }
+
+    // Unordered list
+    const ulMatch = line.match(/^[-*](?:\s+(.*)|\s*)$/)
+    if (ulMatch) {
+      flushParagraph()
+      if (currentList && currentList.type !== 'ul') flushList()
+      
+      const content = ulMatch[1] || ''
+      if (!currentList) {
+        currentList = { type: 'ul', start: null, items: [content] }
+      } else {
+        currentList.items.push(content)
+      }
+      continue
+    }
+
+    // Otherwise, it's a paragraph
+    flushList()
+    currentParagraph.push(line)
+  }
+
+  flushParagraph()
+  flushList()
+
+  processed = blocks.join('\n')
+
+  // Restore code blocks
+  codes.forEach((code, i) => {
+    processed = processed.replace(`__CODE_${i}__`, code)
+  })
+
+  return processed
 }
 
 const isReady = ref(false)
@@ -481,14 +585,31 @@ onBeforeUnmount(() => {
 .ai-content.is-typing::after { content:''; display:inline-block; width:2px; height:1em; background:#3B82F6; margin-left:2px; vertical-align:text-bottom; animation:blink-cursor .6s steps(2) infinite; }
 @keyframes blink-cursor { 0%{opacity:1} 100%{opacity:0} }
 .ai-content :deep(strong) { color:#0F172A; font-weight:700; }
-.ai-content :deep(ul), .ai-content :deep(ol) { margin:.75rem 0; padding-left:1.5rem; }
-.ai-content :deep(li) { margin-bottom:.5rem; padding-left:.25rem; }
-.ai-content :deep(li)::marker { color:#3B82F6; }
-.ai-content :deep(p) { margin-bottom:.75rem; }
-.ai-content :deep(.md-h3) { font-size:1.05rem; font-weight:700; color:#0F172A; margin:1.25rem 0 .625rem; padding-bottom:.375rem; border-bottom:2px solid #DBEAFE; }
-.ai-content :deep(.md-h4) { font-size:.95rem; font-weight:700; color:#1E293B; margin:1rem 0 .5rem; padding-left:.625rem; border-left:3px solid #3B82F6; }
+.ai-content :deep(p),
+.ai-content :deep(ul),
+.ai-content :deep(ol),
+.ai-content :deep(h1),
+.ai-content :deep(h2),
+.ai-content :deep(h3),
+.ai-content :deep(h4),
+.ai-content :deep(pre) {
+  margin-top: 0;
+  margin-bottom: 0.625rem;
+}
+.ai-content :deep(ul), .ai-content :deep(ol) { padding-left:1.5rem; }
+.ai-content :deep(ul) { list-style-type: disc; }
+.ai-content :deep(ol) { list-style-type: decimal; }
+.ai-content :deep(li) { margin-bottom:0.25rem; padding-left:0.125rem; line-height:1.6; }
+.ai-content :deep(li:last-child) { margin-bottom:0; }
+.ai-content :deep(li)::marker { color:#3B82F6; font-weight:700; }
+.ai-content :deep(p) { line-height:1.7; }
+.ai-content :deep(p:last-child),
+.ai-content :deep(ul:last-child),
+.ai-content :deep(ol:last-child) { margin-bottom:0; }
+.ai-content :deep(.md-h3) { font-size:1.05rem; font-weight:700; color:#0F172A; padding-bottom:.375rem; border-bottom:2px solid #DBEAFE; }
+.ai-content :deep(.md-h4) { font-size:.95rem; font-weight:700; color:#1E293B; padding-left:.625rem; border-left:3px solid #3B82F6; }
 .ai-content :deep(.md-hr) { border:none; height:1px; background:linear-gradient(90deg,#E2E8F0,#DBEAFE,#E2E8F0); margin:1.25rem 0; }
-.ai-content :deep(.ai-code) { background:#0F172A; color:#E2E8F0; border:none; border-radius:10px; padding:1rem 1.25rem; margin:.75rem 0; overflow-x:auto; font-size:.8125rem; font-family:'Fira Code',monospace; }
+.ai-content :deep(.ai-code) { background:#0F172A; color:#E2E8F0; border:none; border-radius:10px; padding:1rem 1.25rem; overflow-x:auto; font-size:.8125rem; font-family:'Fira Code',monospace; }
 .ai-content :deep(.ai-inline-code) { background:#EFF6FF; padding:.15rem .4rem; border-radius:5px; font-size:.85em; color:#1D4ED8; font-weight:600; border:1px solid #BFDBFE; }
 
 /* Typing indicator */
