@@ -364,10 +364,42 @@ onBeforeUnmount(() => {
     </div>
 
     <div class="chat-input-area">
+      <!-- GPT-style attached file chips -->
+      <div v-if="docStore.selectedDocuments.length > 0 && !chatStore.currentConversation" class="attached-files">
+        <div class="attached-files-inner">
+          <TransitionGroup name="chip-pop">
+            <div v-for="doc in docStore.selectedDocuments" :key="doc.id" class="attached-chip">
+              <div class="attached-chip-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <div class="attached-chip-info">
+                <span class="attached-chip-name">{{ doc.filename || doc.fileName || 'Dokumen' }}</span>
+                <span class="attached-chip-type">PDF</span>
+              </div>
+              <button class="attached-chip-remove" @click="docStore.toggleDocumentSelection(doc.id)" title="Hapus">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </TransitionGroup>
+        </div>
+      </div>
+      <!-- Uploading indicator chip -->
+      <div v-if="isDropUploading" class="attached-files">
+        <div class="attached-files-inner">
+          <div class="attached-chip uploading">
+            <div class="attached-chip-icon uploading-icon">
+              <div class="chip-spinner"></div>
+            </div>
+            <div class="attached-chip-info">
+              <span class="attached-chip-name">Mengupload...</span>
+              <span class="attached-chip-type">PDF</span>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="input-wrap">
         <button class="in-btn" title="Upload/Pilih dokumen" @click="showDocPicker = true">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-          <span v-if="docStore.selectedDocumentIds.length > 0" class="doc-badge">{{ docStore.selectedDocumentIds.length }}</span>
         </button>
         <textarea v-model="messageInput" class="chat-input" placeholder="Tanyakan apapun tentang materi kuliah..." rows="1" @keydown="handleKeydown" :disabled="isSending"></textarea>
         <button class="send-btn" :class="{ active: messageInput.trim() && !isSending }" @click="sendMessage" :disabled="!messageInput.trim() || isSending">
@@ -496,6 +528,27 @@ onBeforeUnmount(() => {
 .send-btn.active { background:#3B82F6; cursor:pointer; box-shadow:0 2px 8px rgba(59,130,246,.3); }
 .send-btn.active:hover { background:#2563EB; transform:scale(1.05); }
 .disclaimer { text-align:center; font-size:.6875rem; color:#94A3B8; margin-top:.5rem; }
+
+/* Attached File Chips (GPT-style) */
+.attached-files { max-width:780px; margin:0 auto .5rem; }
+.attached-files-inner { display:flex; flex-wrap:wrap; gap:.5rem; }
+.attached-chip { display:flex; align-items:center; gap:.625rem; padding:.5rem .75rem; background:#1E293B; border-radius:12px; max-width:280px; animation:chipIn .25s ease; }
+@keyframes chipIn { from{opacity:0;transform:scale(.9)} to{opacity:1;transform:scale(1)} }
+.attached-chip.uploading { opacity:.7; }
+.attached-chip-icon { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#EF4444,#DC2626); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:#fff; }
+.attached-chip-icon.uploading-icon { background:#475569; }
+.chip-spinner { width:16px; height:16px; border:2px solid #94A3B8; border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
+.attached-chip-info { flex:1; min-width:0; }
+.attached-chip-name { display:block; font-size:.75rem; font-weight:600; color:#F1F5F9; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.attached-chip-type { display:block; font-size:.625rem; color:#94A3B8; margin-top:1px; }
+.attached-chip-remove { display:flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,.1); border:none; color:#94A3B8; cursor:pointer; flex-shrink:0; transition:all .15s; }
+.attached-chip-remove:hover { background:rgba(255,255,255,.2); color:#fff; }
+
+/* Chip pop transition */
+.chip-pop-enter-active { transition:all .25s ease; }
+.chip-pop-leave-active { transition:all .2s ease; }
+.chip-pop-enter-from { opacity:0; transform:scale(.8); }
+.chip-pop-leave-to { opacity:0; transform:scale(.8) translateX(-8px); }
 
 /* Document Picker */
 .doc-picker-overlay { position:fixed; inset:0; background:rgba(0,0,0,.4); backdrop-filter:blur(4px); z-index:200; display:flex; align-items:center; justify-content:center; padding:1rem; }
