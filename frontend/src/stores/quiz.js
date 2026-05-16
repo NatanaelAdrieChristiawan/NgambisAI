@@ -141,9 +141,7 @@ export const useQuizStore = defineStore('quiz', () => {
         }
         return mapped
       })
-      currentQuestionIndex.value = 0
-      score.value = 0
-      answers.value = {}
+      loadProgress(sessionId)
     } catch (err) {
       error.value = err.response?.data?.message || 'Gagal memuat sesi'
     } finally {
@@ -167,6 +165,8 @@ export const useQuizStore = defineStore('quiz', () => {
         score.value += 100
       }
     }
+    
+    saveProgress()
   }
 
   /**
@@ -175,6 +175,7 @@ export const useQuizStore = defineStore('quiz', () => {
   function nextQuestion() {
     if (currentQuestionIndex.value < totalQuestions.value - 1) {
       currentQuestionIndex.value++
+      saveProgress()
     }
   }
 
@@ -184,6 +185,7 @@ export const useQuizStore = defineStore('quiz', () => {
   function prevQuestion() {
     if (currentQuestionIndex.value > 0) {
       currentQuestionIndex.value--
+      saveProgress()
     }
   }
 
@@ -201,6 +203,37 @@ export const useQuizStore = defineStore('quiz', () => {
 
   function clearError() {
     error.value = null
+  }
+
+  // ===== Storage Persistence =====
+  function saveProgress() {
+    if (!currentSession.value?.id) return
+    const progressData = {
+      score: score.value,
+      answers: answers.value,
+      currentQuestionIndex: currentQuestionIndex.value
+    }
+    localStorage.setItem(`quiz_progress_${currentSession.value.id}`, JSON.stringify(progressData))
+  }
+
+  function loadProgress(sessionId) {
+    const saved = localStorage.getItem(`quiz_progress_${sessionId}`)
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        score.value = parsed.score || 0
+        answers.value = parsed.answers || {}
+        currentQuestionIndex.value = parsed.currentQuestionIndex || 0
+      } catch (e) {
+        score.value = 0
+        answers.value = {}
+        currentQuestionIndex.value = 0
+      }
+    } else {
+      score.value = 0
+      answers.value = {}
+      currentQuestionIndex.value = 0
+    }
   }
 
   return {

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, inject } from 'vue'
+import { ref, computed, onMounted, onUnmounted, inject, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useQuizStore } from '@/stores/quiz'
 import { useDocumentStore } from '@/stores/document'
@@ -61,6 +61,37 @@ function handleTimeUp() {
   selectedAnswer.value = -1
   showResult.value = true
   isCorrect.value = false
+  if (currentQuestion.value) {
+    quizStore.selectAnswer(-1)
+  }
+}
+
+function loadCurrentQuestionState() {
+  if (!quizStore.currentQuestion) return
+
+  const answeredIndex = quizStore.answers[quizStore.currentQuestion.id]
+  if (answeredIndex !== undefined) {
+    selectedAnswer.value = answeredIndex
+    showResult.value = true
+    
+    // Evaluate if correct
+    const q = quizStore.currentQuestion
+    if (q && q.options && q.correctAnswer) {
+      if (answeredIndex === -1) {
+        isCorrect.value = false
+      } else {
+        isCorrect.value = q.options[answeredIndex] === q.correctAnswer
+      }
+    } else {
+      isCorrect.value = false
+    }
+    clearInterval(timerInterval)
+  } else {
+    selectedAnswer.value = null
+    showResult.value = false
+    isCorrect.value = false
+    startTimer()
+  }
 }
 
 function selectAnswer(index) {
@@ -71,8 +102,7 @@ function selectAnswer(index) {
   const q = currentQuestion.value
   if (q && q.options && q.correctAnswer) {
     isCorrect.value = q.options[index] === q.correctAnswer
-    if (isCorrect.value) quizStore.selectAnswer(index)
-    else quizStore.answers[q.id] = index
+    quizStore.selectAnswer(index)
   }
 }
 
@@ -82,10 +112,7 @@ function nextQuestion() {
     return
   }
   quizStore.nextQuestion()
-  selectedAnswer.value = null
-  showResult.value = false
-  isCorrect.value = false
-  startTimer()
+  loadCurrentQuestionState()
 }
 
 function skipQuestion() {
@@ -94,6 +121,9 @@ function skipQuestion() {
   selectedAnswer.value = -1
   showResult.value = true
   isCorrect.value = false
+  if (currentQuestion.value) {
+    quizStore.selectAnswer(-1)
+  }
 }
 
 function getOptionClass(index) {
@@ -119,9 +149,7 @@ async function startQuiz() {
     await quizStore.createSession({ documentIds: docStore.selectedDocumentIds, personaType: personaType.value, questionCount: questionCount.value, itemType: 'MULTIPLE_CHOICE' })
     showSetup.value = false
     quizFinished.value = false
-    selectedAnswer.value = null
-    showResult.value = false
-    startTimer()
+    loadCurrentQuestionState()
   } catch (err) { setupError.value = quizStore.error || 'Gagal membuat quiz.' }
 }
 
@@ -138,7 +166,18 @@ function handleNewQuiz() {
 onMounted(() => {
   docStore.loadDocuments()
   if (quizStore.quizItems.length > 0 && quizStore.currentQuestion?.itemType === 'MULTIPLE_CHOICE') {
-    showSetup.value = false; startTimer()
+    showSetup.value = false; loadCurrentQuestionState()
+  }
+})
+
+watch(() => quizStore.currentSession, (newSession) => {
+  if (newSession && quizStore.quizItems.length > 0 && quizStore.currentQuestion?.itemType === 'MULTIPLE_CHOICE') {
+    showSetup.value = false
+    quizFinished.value = false
+    loadCurrentQuestionState()
+  } else {
+    showSetup.value = true
+    clearInterval(timerInterval)
   }
 })
 onUnmounted(() => clearInterval(timerInterval))

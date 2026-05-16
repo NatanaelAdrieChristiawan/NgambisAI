@@ -43,22 +43,60 @@ const evaluations = ref([])
 const currentQuestion = computed(() => quizStore.quizItems[currentQIndex.value])
 const totalQuestions = computed(() => quizStore.quizItems.length)
 
+function saveProgress() {
+  if (!quizStore.currentSession?.id) return
+  const progressData = {
+    currentQIndex: currentQIndex.value,
+    evaluations: evaluations.value,
+    transcript: transcript.value,
+    evaluation: evaluation.value,
+    finished: finished.value
+  }
+  localStorage.setItem(`vts_progress_${quizStore.currentSession.id}`, JSON.stringify(progressData))
+}
+
+function loadProgress() {
+  if (!quizStore.currentSession?.id) return
+  const saved = localStorage.getItem(`vts_progress_${quizStore.currentSession.id}`)
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved)
+      currentQIndex.value = parsed.currentQIndex || 0
+      evaluations.value = parsed.evaluations || []
+      transcript.value = parsed.transcript || ''
+      evaluation.value = parsed.evaluation || null
+      finished.value = parsed.finished || false
+      evalError.value = null
+    } catch (e) {
+      resetLocalState()
+    }
+  } else {
+    resetLocalState()
+  }
+}
+
+function resetLocalState() {
+  currentQIndex.value = 0
+  evaluations.value = []
+  transcript.value = ''
+  evaluation.value = null
+  finished.value = false
+  evalError.value = null
+}
+
 onMounted(() => {
   docStore.loadDocuments()
   speechSupported.value = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
   if (quizStore.quizItems.length > 0 && quizStore.currentQuestion?.itemType === 'ESSAY') {
     showSetup.value = false
+    loadProgress()
   }
 })
 
 watch(() => quizStore.currentSession, (newSession) => {
   if (newSession && quizStore.quizItems.length > 0 && quizStore.currentQuestion?.itemType === 'ESSAY') {
     showSetup.value = false
-    finished.value = false
-    evaluations.value = []
-    transcript.value = ''
-    evaluation.value = null
-    evalError.value = null
+    loadProgress()
   } else {
     showSetup.value = true
   }
@@ -114,6 +152,7 @@ async function submitAnswer() {
     })
     evaluation.value = resp.data.data
     evaluations.value.push({ question: currentQuestion.value.questionText, ...resp.data.data })
+    saveProgress()
   } catch (err) {
     evalError.value = err.response?.data?.message || 'Gagal mengevaluasi jawaban.'
   } finally {
@@ -122,9 +161,10 @@ async function submitAnswer() {
 }
 
 function nextQuestion() {
-  if (currentQIndex.value >= totalQuestions.value - 1) { finished.value = true; return }
+  if (currentQIndex.value >= totalQuestions.value - 1) { finished.value = true; saveProgress(); return }
   currentQIndex.value++
   transcript.value = ''; interimTranscript.value = ''; evaluation.value = null
+  saveProgress()
 }
 
 
@@ -134,11 +174,11 @@ async function startSession() {
   setupError.value = null
   try {
     await quizStore.createSession({ documentIds: docStore.selectedDocumentIds, personaType: personaType.value, questionCount: questionCount.value, itemType: 'ESSAY' })
-    showSetup.value = false; finished.value = false; currentQIndex.value = 0; evaluations.value = []; transcript.value = ''; evaluation.value = null
+    showSetup.value = false; resetLocalState(); saveProgress()
   } catch (err) { setupError.value = quizStore.error || 'Gagal membuat sesi.' }
 }
 
-function handleNewSession() { quizStore.resetQuiz(); docStore.clearSelection(); showSetup.value = true; finished.value = false; currentQIndex.value = 0; evaluations.value = [] }
+function handleNewSession() { quizStore.resetQuiz(); docStore.clearSelection(); showSetup.value = true; resetLocalState() }
 function getScoreColor(s) { if (s >= 80) return '#10B981'; if (s >= 60) return '#F59E0B'; return '#EF4444' }
 
 onUnmounted(() => { stopRecording() })
