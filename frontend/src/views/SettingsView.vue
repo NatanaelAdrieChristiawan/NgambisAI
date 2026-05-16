@@ -118,13 +118,19 @@ onMounted(() => { loadProfile() })
       </div>
 
       <!-- Danger Zone -->
-      <div class="st-card danger-card">
-        <h3 class="card-title danger-title">Zona Bahaya</h3>
-        <p class="danger-desc">Tindakan ini tidak dapat dibatalkan. Berhati-hatilah.</p>
-        <button class="btn-logout" @click="authStore.logout()">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          Logout
-        </button>
+      <div class="st-card danger-zone">
+        <div class="danger-action-list">
+          <div class="danger-action-item">
+            <div class="danger-action-info">
+              <h4>Keluar Aplikasi</h4>
+              <p>Mengakhiri sesi Anda saat ini. Anda perlu login kembali untuk mengakses data Anda.</p>
+            </div>
+            <button class="btn-danger" @click="authStore.logout()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Logout
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -170,16 +176,24 @@ onMounted(() => { loadProfile() })
 @keyframes spin { to { transform:rotate(360deg); } }
 
 /* Danger zone */
-.danger-card { border-color:#FECACA; }
-.danger-title { color:#DC2626; }
-.danger-desc { font-size:.8125rem; color:#64748B; margin-bottom:1rem; }
-.btn-logout { display:inline-flex; align-items:center; gap:.5rem; padding:.625rem 1.25rem; background:#FEF2F2; color:#DC2626; border:1px solid #FECACA; border-radius:10px; font-size:.875rem; font-weight:600; cursor:pointer; transition:all .2s; }
-.btn-logout:hover { background:#FEE2E2; }
+.danger-zone { border: 1px solid #FECACA; background: #FEF2F2; padding: 0; overflow: hidden; margin-top: 0.5rem; }
+.danger-header { display: flex; align-items: center; gap: 0.5rem; padding: 1.5rem 1.5rem 1rem 1.5rem; }
+.danger-icon { color: #DC2626; }
+.danger-title { font-size: 1rem; font-weight: 700; color: #991B1B; margin: 0; }
+.danger-action-list { }
+.danger-action-item { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; gap: 1rem; background: #FFF5F5; }
+.danger-action-info h4 { font-size: .875rem; font-weight: 700; color: #7F1D1D; margin: 0 0 .25rem 0; }
+.danger-action-info p { font-size: .8125rem; color: #991B1B; margin: 0; line-height: 1.5; }
+.btn-danger { display:inline-flex; align-items:center; gap:.5rem; padding:.625rem 1rem; background:#fff; color:#DC2626; border:1px solid #FECACA; border-radius:8px; font-size:.875rem; font-weight:600; cursor:pointer; transition:all .2s; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); white-space: nowrap; flex-shrink: 0; }
+.btn-danger:hover { background:#DC2626; color:#fff; border-color:#DC2626; box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.2); }
 
 @media (max-width:768px) {
   .st-header { padding:.75rem 1rem; }
   .st-content { padding:1.5rem 1rem; }
   .profile-header { flex-direction:column; align-items:flex-start; }
   .st-card { padding:1.5rem; }
+  .danger-header { padding: 1.25rem 1.25rem 0.75rem 1.25rem; }
+  .danger-action-item { flex-direction: column; align-items: flex-start; padding: 1.25rem; }
+  .btn-danger { width: 100%; justify-content: center; margin-top: .5rem; }
 }
 </style>
