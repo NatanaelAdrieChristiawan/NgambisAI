@@ -16,6 +16,15 @@ const displayName = computed(() => authStore.userName || 'User')
 const avatarUrl = computed(() => authStore.userAvatar)
 const initials = computed(() => displayName.value.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2))
 
+// Active documents context — from conversation response
+const currentConversation = computed(() => chatStore.currentConversation)
+const conversationDocs = computed(() => {
+  return currentConversation.value?.documents || []
+})
+const activeDocNames = computed(() => {
+  return conversationDocs.value.map(d => d.filename || d.fileName || d.name || 'Dokumen')
+})
+
 const showUserMenu = ref(false)
 function toggleUserMenu() { showUserMenu.value = !showUserMenu.value }
 function closeUserMenu() { showUserMenu.value = false }
@@ -125,6 +134,9 @@ function renderMarkdown(text) {
   if (!text) return ''
   return text
     .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="ai-code"><code>$2</code></pre>')
+    .replace(/^####\s+(.+)/gm, '<h4 class="md-h4">$1</h4>')
+    .replace(/^###\s+(.+)/gm, '<h3 class="md-h3">$1</h3>')
+    .replace(/^---$/gm, '<hr class="md-hr">')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/`([^`]+)`/g, '<code class="ai-inline-code">$1</code>')
@@ -191,6 +203,7 @@ onBeforeUnmount(() => {
       </div>
     </header>
 
+
     <!-- Document Picker Overlay -->
     <div v-if="showDocPicker" class="doc-picker-overlay" @click.self="showDocPicker = false">
       <div class="doc-picker">
@@ -214,6 +227,21 @@ onBeforeUnmount(() => {
 
     <div v-else class="chat-messages" ref="chatArea">
       <div class="messages-inner">
+        <!-- GPT-style file attachment cards at top -->
+        <div v-if="conversationDocs.length > 0" class="file-context-section">
+          <div class="file-context-cards">
+            <div v-for="doc in conversationDocs" :key="doc.id" class="file-card">
+              <div class="file-card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              </div>
+              <div class="file-card-info">
+                <span class="file-card-name">{{ doc.filename || doc.fileName || 'Dokumen' }}</span>
+                <span class="file-card-type">PDF · Dokumen Konteks</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Empty state -->
         <div v-if="messages.length === 0" class="chat-empty-state">
           <div class="empty-icon">
@@ -225,12 +253,18 @@ onBeforeUnmount(() => {
         </div>
 
         <div v-for="msg in messages" :key="msg.id" class="msg-row" :class="msg.type">
-          <div v-if="msg.type === 'user'" class="bubble-user">{{ msg.content }}</div>
+          <div v-if="msg.type === 'user'" class="bubble-user">
+            <span class="bubble-user-text">{{ msg.content }}</span>
+          </div>
           <div v-else class="ai-wrap">
-            <div class="ai-ava"><img src="/logo/ngambis.png" alt="AI" width="32" height="32" style="border-radius:10px;"/></div>
+            <div class="ai-ava"><img src="/logo/ngambis.png" alt="AI" width="36" height="36" style="border-radius:12px;"/></div>
             <div class="ai-body">
-              <div class="ai-src"><span class="ai-src-lbl">NGAMBIS AI ✦</span></div>
-              <div class="ai-content" :class="{ 'is-typing': msg.id === animatingMsgId }" v-html="renderMarkdown(getDisplayContent(msg))"></div>
+              <div class="ai-header">
+                <span class="ai-src-lbl">NGAMBIS AI ✦</span>
+              </div>
+              <div class="ai-card">
+                <div class="ai-content" :class="{ 'is-typing': msg.id === animatingMsgId }" v-html="renderMarkdown(getDisplayContent(msg))"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -288,27 +322,42 @@ onBeforeUnmount(() => {
 .dd-item { display:flex; align-items:center; gap:.5rem; width:100%; padding:.5rem .75rem; background:none; border:none; border-radius:8px; font-size:.8125rem; font-weight:500; color:#EF4444; cursor:pointer; transition:background .15s; }
 .dd-item:hover { background:#FEF2F2; }
 
+/* File Context Cards (GPT-style) */
+.file-context-section { padding-bottom:.5rem; }
+.file-context-cards { display:flex; flex-wrap:wrap; gap:.5rem; }
+.file-card { display:flex; align-items:center; gap:.75rem; padding:.75rem 1rem; background:#fff; border:1px solid #E2E8F0; border-radius:12px; min-width:200px; max-width:320px; transition:all .2s; cursor:default; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+.file-card:hover { border-color:#93C5FD; box-shadow:0 2px 8px rgba(59,130,246,.1); }
+.file-card-icon { width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg,#EF4444,#DC2626); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:#fff; }
+.file-card-info { flex:1; min-width:0; }
+.file-card-name { display:block; font-size:.8125rem; font-weight:600; color:#0F172A; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.file-card-type { display:block; font-size:.6875rem; color:#94A3B8; margin-top:1px; }
+
 /* Chat Messages */
 .chat-messages { flex:1; overflow-y:auto; padding:1.5rem 0; }
-.messages-inner { max-width:780px; margin:0 auto; padding:0 1.5rem; display:flex; flex-direction:column; gap:1.5rem; }
+.messages-inner { max-width:780px; margin:0 auto; padding:0 1.5rem; display:flex; flex-direction:column; gap:1.75rem; }
 .msg-row { display:flex; animation:msgIn .4s cubic-bezier(.16,1,.3,1); }
 @keyframes msgIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
 .msg-row.user { justify-content:flex-end; }
-.bubble-user { max-width:70%; padding:.875rem 1.25rem; background:#3B82F6; color:#fff; border-radius:18px 18px 4px 18px; font-size:.9375rem; line-height:1.6; box-shadow:0 2px 8px rgba(59,130,246,.2); }
-.ai-wrap { display:flex; gap:.75rem; max-width:85%; }
-.ai-ava { flex-shrink:0; width:36px; height:36px; }
+.bubble-user { max-width:70%; padding:.875rem 1.25rem; background:linear-gradient(135deg,#3B82F6,#2563EB); color:#fff; border-radius:18px 18px 4px 18px; font-size:.9375rem; line-height:1.6; box-shadow:0 4px 12px rgba(59,130,246,.25); }
+.ai-wrap { display:flex; gap:.75rem; max-width:90%; }
+.ai-ava { flex-shrink:0; width:40px; height:40px; padding-top:2px; }
 .ai-body { flex:1; min-width:0; }
-.ai-src { display:flex; align-items:center; gap:.5rem; margin-bottom:.5rem; }
-.ai-src-lbl { font-size:.6875rem; font-weight:700; color:#3B82F6; letter-spacing:.06em; }
-.ai-content { font-size:.9375rem; color:#475569; line-height:1.7; }
+.ai-header { display:flex; align-items:center; gap:.5rem; margin-bottom:.5rem; }
+.ai-src-lbl { font-size:.6875rem; font-weight:700; background:linear-gradient(135deg,#3B82F6,#8B5CF6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:.06em; }
+.ai-card { background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:1.125rem 1.25rem; box-shadow:0 1px 4px rgba(0,0,0,.04); }
+.ai-content { font-size:.9375rem; color:#334155; line-height:1.8; }
 .ai-content.is-typing::after { content:''; display:inline-block; width:2px; height:1em; background:#3B82F6; margin-left:2px; vertical-align:text-bottom; animation:blink-cursor .6s steps(2) infinite; }
 @keyframes blink-cursor { 0%{opacity:1} 100%{opacity:0} }
-.ai-content :deep(strong) { color:#1E293B; font-weight:600; }
+.ai-content :deep(strong) { color:#0F172A; font-weight:700; }
 .ai-content :deep(ul), .ai-content :deep(ol) { margin:.75rem 0; padding-left:1.5rem; }
-.ai-content :deep(li) { margin-bottom:.375rem; }
+.ai-content :deep(li) { margin-bottom:.5rem; padding-left:.25rem; }
+.ai-content :deep(li)::marker { color:#3B82F6; }
 .ai-content :deep(p) { margin-bottom:.75rem; }
-.ai-content :deep(.ai-code) { background:#F1F5F9; border:1px solid #E2E8F0; border-radius:8px; padding:1rem; margin:.75rem 0; overflow-x:auto; font-size:.8125rem; }
-.ai-content :deep(.ai-inline-code) { background:#F1F5F9; padding:.125rem .375rem; border-radius:4px; font-size:.85em; color:#2563EB; }
+.ai-content :deep(.md-h3) { font-size:1.05rem; font-weight:700; color:#0F172A; margin:1.25rem 0 .625rem; padding-bottom:.375rem; border-bottom:2px solid #DBEAFE; }
+.ai-content :deep(.md-h4) { font-size:.95rem; font-weight:700; color:#1E293B; margin:1rem 0 .5rem; padding-left:.625rem; border-left:3px solid #3B82F6; }
+.ai-content :deep(.md-hr) { border:none; height:1px; background:linear-gradient(90deg,#E2E8F0,#DBEAFE,#E2E8F0); margin:1.25rem 0; }
+.ai-content :deep(.ai-code) { background:#0F172A; color:#E2E8F0; border:none; border-radius:10px; padding:1rem 1.25rem; margin:.75rem 0; overflow-x:auto; font-size:.8125rem; font-family:'Fira Code',monospace; }
+.ai-content :deep(.ai-inline-code) { background:#EFF6FF; padding:.15rem .4rem; border-radius:5px; font-size:.85em; color:#1D4ED8; font-weight:600; border:1px solid #BFDBFE; }
 
 /* Typing indicator */
 .typing { display:flex; gap:4px; padding:.75rem 0; }
@@ -372,5 +421,5 @@ onBeforeUnmount(() => {
 .btn-confirm-doc:hover { background:#2563EB; }
 .btn-confirm-doc:disabled { opacity:.5; cursor:default; }
 
-@media(max-width:768px) { .messages-inner{padding:0 1rem} .chat-header{padding:.75rem 1rem} .chat-input-area{padding:.75rem 1rem 1rem} .bubble-user{max-width:85%} .ai-wrap{max-width:95%} .doc-picker{margin:0 .5rem;padding:1.5rem} }
+@media(max-width:768px) { .messages-inner{padding:0 1rem} .chat-header{padding:.75rem 1rem} .chat-input-area{padding:.75rem 1rem 1rem} .bubble-user{max-width:85%} .ai-wrap{max-width:95%} .doc-picker{margin:0 .5rem;padding:1.5rem} .ai-card{padding:.875rem 1rem} .file-card{min-width:160px;max-width:100%} }
 </style>
