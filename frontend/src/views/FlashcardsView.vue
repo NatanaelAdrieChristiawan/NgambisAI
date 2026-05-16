@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, inject, onMounted } from 'vue'
+import { ref, computed, inject, onMounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useQuizStore } from '@/stores/quiz'
 import { useDocumentStore } from '@/stores/document'
@@ -79,6 +79,13 @@ onMounted(() => {
   docStore.loadDocuments()
   if (quizStore.quizItems.length > 0 && quizStore.currentQuestion?.itemType === 'ESSAY') {
     showSetup.value = false
+  }
+})
+
+watch(() => quizStore.currentSession, (newSession) => {
+  if (newSession && quizStore.quizItems.length > 0) {
+    showSetup.value = false
+    isFlipped.value = false
   }
 })
 </script>

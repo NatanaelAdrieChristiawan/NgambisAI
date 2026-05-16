@@ -7,6 +7,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useQuizStore } from '@/stores/quiz'
 import { useChatStore } from '@/stores/chat'
 import ConfirmModal from '@/components/shared/ConfirmModal.vue'
 
@@ -19,6 +20,7 @@ const emit = defineEmits(['close'])
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const quizStore = useQuizStore()
 const chatStore = useChatStore()
 
 const menuItems = [
@@ -29,13 +31,23 @@ const menuItems = [
   { name: 'Voice To Speech', icon: 'voice', route: 'VoiceToSpeech', theme: '#10B981' }
 ]
 
+// Dynamic flashcard history from store
+const flashcardHistory = computed(() => {
+  return [...quizStore.sessions].reverse().slice(0, 8).map(session => ({
+    id: session.id,
+    title: session.documentFilename || session.document?.filename || 'Flashcard Session',
+    time: formatRelativeTime(session.createdAt),
+    active: quizStore.currentSession?.id === session.id && route.name === 'Flashcards'
+  }))
+})
+
 // Dynamic chat history from store
 const chatHistory = computed(() => {
   return chatStore.sortedConversations.slice(0, 8).map(conv => ({
     id: conv.id,
     title: conv.title || 'Percakapan Baru',
     time: formatRelativeTime(conv.updatedAt || conv.createdAt),
-    active: chatStore.currentConversation?.id === conv.id
+    active: chatStore.currentConversation?.id === conv.id && route.name === 'AIChat'
   }))
 })
 
@@ -53,6 +65,15 @@ function formatRelativeTime(dateStr) {
   if (diffHours < 24) return `${diffHours} jam yang lalu`
   if (diffDays < 7) return `${diffDays} hari yang lalu`
   return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
+}
+
+function handleSessionClick(session) {
+  quizStore.loadSession(session.id).then(() => {
+    if (route.name !== 'Flashcards') {
+      router.push({ name: 'Flashcards' })
+    }
+  })
+  emit('close')
 }
 
 function handleChatClick(chat) {
@@ -85,20 +106,26 @@ async function confirmDeleteChat() {
   } catch (err) {
     console.error('Failed to delete conversation:', err)
   }
-}
+}const isActive = (routeName) => route.name === routeName
 
-const isActive = (routeName) => route.name === routeName
-
-// Load conversations on mount
+// Load sessions on mount
 onMounted(async () => {
   if (authStore.isAuthenticated) {
-    await chatStore.loadConversations()
+    await Promise.all([
+      quizStore.loadSessions(),
+      chatStore.loadConversations()
+    ])
   }
 })
 
 // Refresh when auth changes
 watch(() => authStore.isAuthenticated, async (isAuth) => {
-  if (isAuth) await chatStore.loadConversations()
+  if (isAuth) {
+    await Promise.all([
+      quizStore.loadSessions(),
+      chatStore.loadConversations()
+    ])
+  }
 })
 
 // ===== Swipe-to-close gesture =====
@@ -177,6 +204,8 @@ function onTouchEnd() {
       </router-link>
     </nav>
 
+
+
     <!-- Delete Chat Confirmation -->
     <ConfirmModal
       v-model="showDeleteChat"
@@ -188,29 +217,52 @@ function onTouchEnd() {
       @confirm="confirmDeleteChat"
     />
 
-    <!-- Chat History -->
-    <div class="chat-history">
-      <div class="history-label">RIWAYAT CHAT</div>
-      <div class="history-list" v-if="chatHistory.length > 0">
-        <div
-          v-for="chat in chatHistory"
-          :key="chat.id"
-          class="history-item"
-          :class="{ active: chat.active }"
-          @click="handleChatClick(chat)"
-        >
-          <span class="history-title">{{ chat.title }}</span>
-          <div class="history-right">
-            <span class="history-time">{{ chat.time }}</span>
-            <button class="history-delete-btn" @click.stop="(e) => requestDeleteChat(chat, e)" title="Hapus chat">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            </button>
+    <!-- Dynamic History -->
+    <div class="chat-history" v-if="['AIChat', 'Flashcards'].includes(route.name)">
+      <template v-if="route.name === 'Flashcards'">
+        <div class="history-label">RIWAYAT FLASHCARD</div>
+        <div class="history-list" v-if="flashcardHistory.length > 0">
+          <div
+            v-for="session in flashcardHistory"
+            :key="session.id"
+            class="history-item"
+            :class="{ active: session.active }"
+            @click="handleSessionClick(session)"
+          >
+            <span class="history-title">{{ session.title }}</span>
+            <div class="history-right">
+              <span class="history-time">{{ session.time }}</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div v-else class="history-empty">
-        <span>Belum ada riwayat chat</span>
-      </div>
+        <div v-else class="history-empty">
+          <span>Belum ada riwayat flashcard</span>
+        </div>
+      </template>
+
+      <template v-else-if="route.name === 'AIChat'">
+        <div class="history-label">RIWAYAT CHAT</div>
+        <div class="history-list" v-if="chatHistory.length > 0">
+          <div
+            v-for="chat in chatHistory"
+            :key="chat.id"
+            class="history-item"
+            :class="{ active: chat.active }"
+            @click="handleChatClick(chat)"
+          >
+            <span class="history-title">{{ chat.title }}</span>
+            <div class="history-right">
+              <span class="history-time">{{ chat.time }}</span>
+              <button class="history-delete-btn" @click.stop="(e) => requestDeleteChat(chat, e)" title="Hapus chat">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div v-else class="history-empty">
+          <span>Belum ada riwayat chat</span>
+        </div>
+      </template>
     </div>
 
     <!-- Settings -->
@@ -453,9 +505,7 @@ function onTouchEnd() {
 .history-item.active .history-delete-btn:hover {
   background: rgba(255, 255, 255, 0.2);
   color: white;
-}
-
-.history-empty {
+}.history-empty {
   padding: 1rem 0.875rem;
   text-align: center;
 }
