@@ -21,9 +21,11 @@ export const useChatStore = defineStore('chat', () => {
 
   // ===== Getters =====
   const sortedConversations = computed(() => {
-    return [...conversations.value].sort(
-      (a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
-    )
+    return [...conversations.value].sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1
+      if (!a.pinned && b.pinned) return 1
+      return new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
+    })
   })
 
   const hasConversations = computed(() => conversations.value.length > 0)
@@ -176,6 +178,40 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  async function renameConversation(conversationId, newTitle) {
+    try {
+      const response = await chatApi.renameConversation(conversationId, newTitle)
+      const idx = conversations.value.findIndex(c => c.id === conversationId)
+      if (idx !== -1) {
+        conversations.value[idx].title = newTitle
+      }
+      if (currentConversation.value?.id === conversationId) {
+        currentConversation.value.title = newTitle
+      }
+      return response.data.data
+    } catch (err) {
+      console.error('Failed to rename conversation:', err)
+      throw err
+    }
+  }
+
+  async function pinConversation(conversationId, isPinned) {
+    try {
+      const response = await chatApi.pinConversation(conversationId, isPinned)
+      const idx = conversations.value.findIndex(c => c.id === conversationId)
+      if (idx !== -1) {
+        conversations.value[idx].pinned = isPinned
+      }
+      if (currentConversation.value?.id === conversationId) {
+        currentConversation.value.pinned = isPinned
+      }
+      return response.data.data
+    } catch (err) {
+      console.error('Failed to pin conversation:', err)
+      throw err
+    }
+  }
+
   return {
     // State
     conversations,
@@ -192,6 +228,8 @@ export const useChatStore = defineStore('chat', () => {
     loadConversation,
     sendMessage,
     deleteConversation,
+    renameConversation,
+    pinConversation,
     newChat,
     clearError
   }

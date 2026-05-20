@@ -141,6 +141,9 @@ function handleNewChat() {
   docStore.clearSelection()
   showDocPicker.value = false
   sendError.value = null
+  if (route.query.conversationId) {
+    router.push('/chat')
+  }
 }
 
 async function sendMessage() {
@@ -313,6 +316,8 @@ onMounted(async () => {
     await chatStore.loadConversation(convId)
     await nextTick()
     scrollToBottom()
+  } else {
+    handleNewChat()
   }
 })
 
@@ -321,6 +326,8 @@ watch(() => route.query.conversationId, async (newId) => {
     await chatStore.loadConversation(newId)
     await nextTick()
     scrollToBottom()
+  } else {
+    handleNewChat()
   }
 })
 

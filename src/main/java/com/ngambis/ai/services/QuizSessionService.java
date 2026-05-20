@@ -122,13 +122,54 @@ public class QuizSessionService {
             throw new ResourceNotFoundException("User", "id", userId);
         }
 
-        return quizSessionRepository.findByUserIdOrderByCreatedAtDesc(userId)
+        return quizSessionRepository.findByUserIdOrderByPinnedDescCreatedAtDesc(userId)
                 .stream()
                 .map(session -> {
                     List<QuizItem> items = quizItemRepository.findBySessionIdOrderByIdAsc(session.getId());
                     return toResponse(session, items);
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Deletes a quiz session and all associated items.
+     */
+    @Transactional
+    public void deleteSession(UUID sessionId) {
+        QuizSession session = quizSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("QuizSession", "id", sessionId));
+        quizSessionRepository.delete(session);
+        log.info("Quiz session deleted with ID: {}", sessionId);
+    }
+
+    /**
+     * Renames a quiz session's custom title.
+     */
+    @Transactional
+    public QuizSessionResponse renameSession(UUID sessionId, String title) {
+        QuizSession session = quizSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("QuizSession", "id", sessionId));
+        session.setTitle(title);
+        session = quizSessionRepository.save(session);
+        log.info("Quiz session renamed with ID: {} to title: {}", sessionId, title);
+        
+        List<QuizItem> items = quizItemRepository.findBySessionIdOrderByIdAsc(sessionId);
+        return toResponse(session, items);
+    }
+
+    /**
+     * Pins or unpins a quiz session.
+     */
+    @Transactional
+    public QuizSessionResponse pinSession(UUID sessionId, boolean pinned) {
+        QuizSession session = quizSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("QuizSession", "id", sessionId));
+        session.setPinned(pinned);
+        session = quizSessionRepository.save(session);
+        log.info("Quiz session pin/unpin status updated with ID: {} to: {}", sessionId, pinned);
+        
+        List<QuizItem> items = quizItemRepository.findBySessionIdOrderByIdAsc(sessionId);
+        return toResponse(session, items);
     }
 
     private QuizSessionResponse toResponse(QuizSession session, List<QuizItem> items) {
@@ -141,8 +182,11 @@ public class QuizSessionService {
                 .userId(session.getUser().getId())
                 .documentId(session.getDocument().getId())
                 .documentFilename(session.getDocument().getFilename())
+                .title(session.getTitle())
+                .pinned(session.isPinned())
                 .personaType(session.getPersonaType())
                 .createdAt(session.getCreatedAt())
+                .updatedAt(session.getUpdatedAt())
                 .quizItems(itemResponses)
                 .build();
     }

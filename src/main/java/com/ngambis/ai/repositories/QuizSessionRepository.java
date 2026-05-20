@@ -18,4 +18,6 @@ public interface QuizSessionRepository extends JpaRepository<QuizSession, UUID> 
     List<QuizSession> findByDocumentId(UUID documentId);
 
     List<QuizSession> findByUserIdOrderByCreatedAtDesc(UUID userId);
+
+    List<QuizSession> findByUserIdOrderByPinnedDescCreatedAtDesc(UUID userId);
 }

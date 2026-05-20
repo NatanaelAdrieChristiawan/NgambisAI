@@ -39,6 +39,14 @@ const chatApi = {
    */
   deleteConversation(conversationId) {
     return api.delete(`/api/chat/conversations/${conversationId}`)
+  },
+
+  renameConversation(conversationId, title) {
+    return api.put(`/api/chat/conversations/${conversationId}/rename?title=${encodeURIComponent(title)}`)
+  },
+
+  pinConversation(conversationId, isPinned) {
+    return api.put(`/api/chat/conversations/${conversationId}/pin?isPinned=${isPinned}`)
   }
 }
 

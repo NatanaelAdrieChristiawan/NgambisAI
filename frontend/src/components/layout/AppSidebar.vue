@@ -4,7 +4,7 @@
  * Features: Logo + subtitle, navigation menu, dynamic chat history, settings link.
  * On mobile: opens as overlay with swipe-to-close gesture support.
  */
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useQuizStore } from '@/stores/quiz'
@@ -28,43 +28,64 @@ const menuItems = [
   { name: 'AI Chat', icon: 'chat', route: 'AIChat', theme: '#3B82F6' },
   { name: 'Flashcards', icon: 'flashcards', route: 'Flashcards', theme: '#3B82F6' },
   { name: 'Quiz Mode', icon: 'quiz', route: 'QuizMode', theme: '#F59E0B' },
-  { name: 'Voice To Speech', icon: 'voice', route: 'VoiceToSpeech', theme: '#10B981' }
+  { name: 'Ujian Lisan', icon: 'voice', route: 'VoiceToSpeech', theme: '#10B981' }
 ]
 
 // Dynamic flashcard history from store
 const flashcardHistory = computed(() => {
-  return [...quizStore.sessions]
+  const list = [...quizStore.sessions]
     .filter(s => s.itemType === 'ESSAY' || (s.quizItems && s.quizItems.length > 0 && s.quizItems[0].itemType === 'ESSAY'))
-    .reverse().slice(0, 8).map(session => ({
-    id: session.id,
-    title: session.documentFilename || session.document?.filename || 'Flashcard Session',
-    time: formatRelativeTime(session.createdAt),
-    active: quizStore.currentSession?.id === session.id && route.name === 'Flashcards'
-  }))
+    .reverse()
+    .map(session => ({
+      id: session.id,
+      title: session.title || session.documentFilename || session.document?.filename || 'Flashcard Session',
+      time: formatRelativeTime(session.createdAt),
+      pinned: session.pinned || false,
+      active: quizStore.currentSession?.id === session.id && route.name === 'Flashcards'
+    }))
+  return list.sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1
+    if (!a.pinned && b.pinned) return 1
+    return 0
+  }).slice(0, 8)
 })
 
 // Dynamic voice history from store
 const voiceHistory = computed(() => {
-  return [...quizStore.sessions]
+  const list = [...quizStore.sessions]
     .filter(s => s.itemType === 'ESSAY' || (s.quizItems && s.quizItems.length > 0 && s.quizItems[0].itemType === 'ESSAY'))
-    .reverse().slice(0, 8).map(session => ({
-    id: session.id,
-    title: session.documentFilename || session.document?.filename || 'Voice Session',
-    time: formatRelativeTime(session.createdAt),
-    active: quizStore.currentSession?.id === session.id && route.name === 'VoiceToSpeech'
-  }))
+    .reverse()
+    .map(session => ({
+      id: session.id,
+      title: session.title || session.documentFilename || session.document?.filename || 'Ujian Lisan Session',
+      time: formatRelativeTime(session.createdAt),
+      pinned: session.pinned || false,
+      active: quizStore.currentSession?.id === session.id && route.name === 'VoiceToSpeech'
+    }))
+  return list.sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1
+    if (!a.pinned && b.pinned) return 1
+    return 0
+  }).slice(0, 8)
 })
 
 // Dynamic quiz history from store
 const quizHistory = computed(() => {
-  return [...quizStore.sessions]
+  const list = [...quizStore.sessions]
     .filter(s => s.itemType === 'MULTIPLE_CHOICE' || (s.quizItems && s.quizItems.length > 0 && s.quizItems[0].itemType === 'MULTIPLE_CHOICE'))
-    .reverse().slice(0, 8).map(session => ({
-    id: session.id,
-    title: session.documentFilename || session.document?.filename || 'Quiz Session',
-    time: formatRelativeTime(session.createdAt),
-    active: quizStore.currentSession?.id === session.id && route.name === 'QuizMode'
-  }))
+    .reverse()
+    .map(session => ({
+      id: session.id,
+      title: session.title || session.documentFilename || session.document?.filename || 'Quiz Session',
+      time: formatRelativeTime(session.createdAt),
+      pinned: session.pinned || false,
+      active: quizStore.currentSession?.id === session.id && route.name === 'QuizMode'
+    }))
+  return list.sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1
+    if (!a.pinned && b.pinned) return 1
+    return 0
+  }).slice(0, 8)
 })
 
 // Dynamic chat history from store
@@ -73,6 +94,7 @@ const chatHistory = computed(() => {
     id: conv.id,
     title: conv.title || 'Percakapan Baru',
     time: formatRelativeTime(conv.updatedAt || conv.createdAt),
+    pinned: conv.pinned,
     active: chatStore.currentConversation?.id === conv.id && route.name === 'AIChat'
   }))
 })
@@ -129,6 +151,22 @@ function handleNavClick() {
   emit('close')
 }
 
+// Menu Dropdown State
+const activeMenuId = ref(null)
+
+function toggleMenu(chatId, event) {
+  event.stopPropagation()
+  if (activeMenuId.value === chatId) {
+    activeMenuId.value = null
+  } else {
+    activeMenuId.value = chatId
+  }
+}
+
+function closeAllMenus() {
+  activeMenuId.value = null
+}
+
 // Chat delete
 const showDeleteChat = ref(false)
 const deleteChatId = ref(null)
@@ -136,6 +174,7 @@ const deleteChatTitle = ref('')
 
 function requestDeleteChat(chat, event) {
   event.stopPropagation()
+  closeAllMenus()
   deleteChatId.value = chat.id
   deleteChatTitle.value = chat.title
   showDeleteChat.value = true
@@ -150,16 +189,127 @@ async function confirmDeleteChat() {
   } catch (err) {
     console.error('Failed to delete conversation:', err)
   }
-}const isActive = (routeName) => route.name === routeName
+}
+
+// Chat rename
+const showRenameModal = ref(false)
+const renameChatId = ref(null)
+const renameInput = ref('')
+const renameInputRef = ref(null)
+
+function requestRenameChat(chat, event) {
+  event.stopPropagation()
+  closeAllMenus()
+  renameChatId.value = chat.id
+  renameInput.value = chat.title
+  showRenameModal.value = true
+  nextTick(() => {
+    if (renameInputRef.value) renameInputRef.value.focus()
+  })
+}
+
+async function confirmRenameChat() {
+  if (!renameChatId.value || !renameInput.value.trim()) return
+  try {
+    await chatStore.renameConversation(renameChatId.value, renameInput.value.trim())
+    showRenameModal.value = false
+    renameChatId.value = null
+    renameInput.value = ''
+  } catch (err) {
+    console.error('Failed to rename conversation:', err)
+  }
+}
+
+// Chat pin
+async function togglePinChat(chat, event) {
+  event.stopPropagation()
+  closeAllMenus()
+  try {
+    await chatStore.pinConversation(chat.id, !chat.pinned)
+  } catch (err) {
+    console.error('Failed to toggle pin state:', err)
+  }
+}
+
+// Session delete
+const showDeleteSession = ref(false)
+const deleteSessionId = ref(null)
+const deleteSessionTitle = ref('')
+
+function requestDeleteSession(session, event) {
+  event.stopPropagation()
+  closeAllMenus()
+  deleteSessionId.value = session.id
+  deleteSessionTitle.value = session.title
+  showDeleteSession.value = true
+}
+
+async function confirmDeleteSession() {
+  if (!deleteSessionId.value) return
+  try {
+    await quizStore.deleteSession(deleteSessionId.value)
+    deleteSessionId.value = null
+    deleteSessionTitle.value = ''
+  } catch (err) {
+    console.error('Failed to delete session:', err)
+  }
+}
+
+// Session rename
+const showRenameSessionModal = ref(false)
+const renameSessionId = ref(null)
+const renameSessionInput = ref('')
+const renameSessionInputRef = ref(null)
+
+function requestRenameSession(session, event) {
+  event.stopPropagation()
+  closeAllMenus()
+  renameSessionId.value = session.id
+  renameSessionInput.value = session.title
+  showRenameSessionModal.value = true
+  nextTick(() => {
+    if (renameSessionInputRef.value) renameSessionInputRef.value.focus()
+  })
+}
+
+async function confirmRenameSession() {
+  if (!renameSessionId.value || !renameSessionInput.value.trim()) return
+  try {
+    await quizStore.renameSession(renameSessionId.value, renameSessionInput.value.trim())
+    showRenameSessionModal.value = false
+    renameSessionId.value = null
+    renameSessionInput.value = ''
+  } catch (err) {
+    console.error('Failed to rename session:', err)
+  }
+}
+
+// Session pin
+async function togglePinSession(session, event) {
+  event.stopPropagation()
+  closeAllMenus()
+  try {
+    await quizStore.pinSession(session.id, !session.pinned)
+  } catch (err) {
+    console.error('Failed to toggle session pin state:', err)
+  }
+}
+
+const isActive = (routeName) => route.name === routeName
 
 // Load sessions on mount
 onMounted(async () => {
+  window.addEventListener('click', closeAllMenus)
   if (authStore.isAuthenticated) {
     await Promise.all([
       quizStore.loadSessions(),
       chatStore.loadConversations()
     ])
   }
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('click', closeAllMenus)
 })
 
 // Refresh when auth changes
@@ -261,6 +411,17 @@ function onTouchEnd() {
       @confirm="confirmDeleteChat"
     />
 
+    <!-- Delete Session Confirmation -->
+    <ConfirmModal
+      v-model="showDeleteSession"
+      title="Hapus Sesi Belajar"
+      :message="`Apakah kamu yakin ingin menghapus sesi '${deleteSessionTitle}'? Semua data sesi ini akan terhapus permanen.`"
+      confirmText="Ya, Hapus"
+      cancelText="Batal"
+      variant="danger"
+      @confirm="confirmDeleteSession"
+    />
+
     <!-- Dynamic History -->
     <div class="chat-history" v-if="['AIChat', 'Flashcards', 'VoiceToSpeech', 'QuizMode'].includes(route.name)">
       <template v-if="route.name === 'Flashcards'">
@@ -270,12 +431,37 @@ function onTouchEnd() {
             v-for="session in flashcardHistory"
             :key="session.id"
             class="history-item"
-            :class="{ active: session.active }"
+            :class="{ active: session.active, pinned: session.pinned }"
             @click="handleSessionClick(session)"
           >
+            <span v-if="session.pinned" class="pinned-indicator-icon" title="Dipin">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.33-2.91A2 2 0 0 1 16 9.85V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v4.85a2 2 0 0 1-.23 1.05l-2.33 2.9A2 2 0 0 0 5 15.24z"/></svg>
+            </span>
             <span class="history-title">{{ session.title }}</span>
             <div class="history-right">
               <span class="history-time">{{ session.time }}</span>
+              <div class="menu-container" @click.stop>
+                <button class="options-btn" @click="toggleMenu(session.id, $event)" title="Opsi sesi">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                </button>
+                <Transition name="fade-pop">
+                  <div v-if="activeMenuId === session.id" class="options-dropdown">
+                    <button class="opt-item" @click="togglePinSession(session, $event)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.33-2.91A2 2 0 0 1 16 9.85V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v4.85a2 2 0 0 1-.23 1.05l-2.33 2.9A2 2 0 0 0 5 15.24z"/></svg>
+                      <span>{{ session.pinned ? 'Lepaskan' : 'Sematkan (Pin)' }}</span>
+                    </button>
+                    <button class="opt-item" @click="requestRenameSession(session, $event)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      <span>Ganti nama</span>
+                    </button>
+                    <div class="opt-divider"></div>
+                    <button class="opt-item opt-danger" @click="requestDeleteSession(session, $event)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      <span>Hapus</span>
+                    </button>
+                  </div>
+                </Transition>
+              </div>
             </div>
           </div>
         </div>
@@ -291,15 +477,37 @@ function onTouchEnd() {
             v-for="chat in chatHistory"
             :key="chat.id"
             class="history-item"
-            :class="{ active: chat.active }"
+            :class="{ active: chat.active, pinned: chat.pinned }"
             @click="handleChatClick(chat)"
           >
+            <span v-if="chat.pinned" class="pinned-indicator-icon" title="Dipin">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.33-2.91A2 2 0 0 1 16 9.85V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v4.85a2 2 0 0 1-.23 1.05l-2.33 2.9A2 2 0 0 0 5 15.24z"/></svg>
+            </span>
             <span class="history-title">{{ chat.title }}</span>
             <div class="history-right">
               <span class="history-time">{{ chat.time }}</span>
-              <button class="history-delete-btn" @click.stop="(e) => requestDeleteChat(chat, e)" title="Hapus chat">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-              </button>
+              <div class="menu-container" @click.stop>
+                <button class="options-btn" @click="toggleMenu(chat.id, $event)" title="Opsi chat">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                </button>
+                <Transition name="fade-pop">
+                  <div v-if="activeMenuId === chat.id" class="options-dropdown">
+                    <button class="opt-item" @click="togglePinChat(chat, $event)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.33-2.91A2 2 0 0 1 16 9.85V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v4.85a2 2 0 0 1-.23 1.05l-2.33 2.9A2 2 0 0 0 5 15.24z"/></svg>
+                      <span>{{ chat.pinned ? 'Lepaskan' : 'Sematkan (Pin)' }}</span>
+                    </button>
+                    <button class="opt-item" @click="requestRenameChat(chat, $event)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      <span>Ganti nama</span>
+                    </button>
+                    <div class="opt-divider"></div>
+                    <button class="opt-item opt-danger" @click="requestDeleteChat(chat, $event)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      <span>Hapus</span>
+                    </button>
+                  </div>
+                </Transition>
+              </div>
             </div>
           </div>
         </div>
@@ -307,24 +515,50 @@ function onTouchEnd() {
           <span>Belum ada riwayat chat</span>
         </div>
       </template>
+
       <template v-else-if="route.name === 'VoiceToSpeech'">
-        <div class="history-label">RIWAYAT VOICE TO SPEECH</div>
+        <div class="history-label">RIWAYAT UJIAN LISAN</div>
         <div class="history-list" v-if="voiceHistory.length > 0">
           <div
             v-for="session in voiceHistory"
             :key="session.id"
             class="history-item"
-            :class="{ active: session.active }"
+            :class="{ active: session.active, pinned: session.pinned }"
             @click="handleVoiceClick(session)"
           >
+            <span v-if="session.pinned" class="pinned-indicator-icon" title="Dipin">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.33-2.91A2 2 0 0 1 16 9.85V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v4.85a2 2 0 0 1-.23 1.05l-2.33 2.9A2 2 0 0 0 5 15.24z"/></svg>
+            </span>
             <span class="history-title">{{ session.title }}</span>
             <div class="history-right">
               <span class="history-time">{{ session.time }}</span>
+              <div class="menu-container" @click.stop>
+                <button class="options-btn" @click="toggleMenu(session.id, $event)" title="Opsi sesi">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                </button>
+                <Transition name="fade-pop">
+                  <div v-if="activeMenuId === session.id" class="options-dropdown">
+                    <button class="opt-item" @click="togglePinSession(session, $event)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.33-2.91A2 2 0 0 1 16 9.85V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v4.85a2 2 0 0 1-.23 1.05l-2.33 2.9A2 2 0 0 0 5 15.24z"/></svg>
+                      <span>{{ session.pinned ? 'Lepaskan' : 'Sematkan (Pin)' }}</span>
+                    </button>
+                    <button class="opt-item" @click="requestRenameSession(session, $event)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      <span>Ganti nama</span>
+                    </button>
+                    <div class="opt-divider"></div>
+                    <button class="opt-item opt-danger" @click="requestDeleteSession(session, $event)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      <span>Hapus</span>
+                    </button>
+                  </div>
+                </Transition>
+              </div>
             </div>
           </div>
         </div>
         <div v-else class="history-empty">
-          <span>Belum ada riwayat voice to speech</span>
+          <span>Belum ada riwayat ujian lisan</span>
         </div>
       </template>
 
@@ -335,12 +569,37 @@ function onTouchEnd() {
             v-for="session in quizHistory"
             :key="session.id"
             class="history-item"
-            :class="{ active: session.active }"
+            :class="{ active: session.active, pinned: session.pinned }"
             @click="handleQuizClick(session)"
           >
+            <span v-if="session.pinned" class="pinned-indicator-icon" title="Dipin">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.33-2.91A2 2 0 0 1 16 9.85V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v4.85a2 2 0 0 1-.23 1.05l-2.33 2.9A2 2 0 0 0 5 15.24z"/></svg>
+            </span>
             <span class="history-title">{{ session.title }}</span>
             <div class="history-right">
               <span class="history-time">{{ session.time }}</span>
+              <div class="menu-container" @click.stop>
+                <button class="options-btn" @click="toggleMenu(session.id, $event)" title="Opsi sesi">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                </button>
+                <Transition name="fade-pop">
+                  <div v-if="activeMenuId === session.id" class="options-dropdown">
+                    <button class="opt-item" @click="togglePinSession(session, $event)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.33-2.91A2 2 0 0 1 16 9.85V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v4.85a2 2 0 0 1-.23 1.05l-2.33 2.9A2 2 0 0 0 5 15.24z"/></svg>
+                      <span>{{ session.pinned ? 'Lepaskan' : 'Sematkan (Pin)' }}</span>
+                    </button>
+                    <button class="opt-item" @click="requestRenameSession(session, $event)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      <span>Ganti nama</span>
+                    </button>
+                    <div class="opt-divider"></div>
+                    <button class="opt-item opt-danger" @click="requestDeleteSession(session, $event)">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      <span>Hapus</span>
+                    </button>
+                  </div>
+                </Transition>
+              </div>
             </div>
           </div>
         </div>
@@ -348,6 +607,32 @@ function onTouchEnd() {
           <span>Belum ada riwayat quiz</span>
         </div>
       </template>
+    </div>
+
+    <!-- Rename Chat Modal -->
+    <div v-if="showRenameModal" class="custom-modal-overlay" @click.self="showRenameModal = false">
+      <div class="custom-modal">
+        <h3>Ganti Nama Percakapan</h3>
+        <p>Masukkan nama baru untuk percakapan ini:</p>
+        <input v-model="renameInput" class="modal-input" @keyup.enter="confirmRenameChat" placeholder="Nama percakapan..." ref="renameInputRef" />
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" @click="showRenameModal = false">Batal</button>
+          <button class="btn-modal-confirm" @click="confirmRenameChat" :disabled="!renameInput.trim()">Simpan</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rename Session Modal -->
+    <div v-if="showRenameSessionModal" class="custom-modal-overlay" @click.self="showRenameSessionModal = false">
+      <div class="custom-modal">
+        <h3>Ganti Nama Sesi</h3>
+        <p>Masukkan nama baru untuk sesi belajar ini:</p>
+        <input v-model="renameSessionInput" class="modal-input" @keyup.enter="confirmRenameSession" placeholder="Nama sesi..." ref="renameSessionInputRef" />
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" @click="showRenameSessionModal = false">Batal</button>
+          <button class="btn-modal-confirm" @click="confirmRenameSession" :disabled="!renameSessionInput.trim()">Simpan</button>
+        </div>
+      </div>
     </div>
 
     <!-- Settings -->
@@ -625,5 +910,223 @@ function onTouchEnd() {
   .sidebar-close-btn {
     display: flex;
   }
+}
+
+/* Options dropdown and custom modal style */
+.menu-container {
+  position: relative;
+  display: inline-flex;
+}
+
+.options-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: #94A3B8;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.history-item:hover .options-btn,
+.menu-container:focus-within .options-btn {
+  opacity: 1;
+}
+
+.options-btn:hover {
+  background: #E2E8F0;
+  color: #475569;
+}
+
+.history-item.active .options-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.options-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  width: 160px;
+  background: white;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  padding: 4px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.opt-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.opt-item:hover {
+  background: #F1F5F9;
+  color: #1E293B;
+}
+
+.opt-divider {
+  height: 1px;
+  background: #F1F5F9;
+  margin: 2px 4px;
+}
+
+.opt-danger {
+  color: #EF4444;
+}
+
+.opt-danger:hover {
+  background: #FEF2F2;
+  color: #EF4444;
+}
+
+.pinned-indicator-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #3B82F6;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.history-item.active .pinned-indicator-icon {
+  color: white;
+}
+
+.history-item.active .options-btn {
+  color: rgba(255,255,255,0.7);
+}
+
+/* Custom modal */
+.custom-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.custom-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 1.75rem;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+  animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.custom-modal h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 0.5rem;
+}
+
+.custom-modal p {
+  font-size: 0.875rem;
+  color: #64748B;
+  margin: 0 0 1rem;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  color: #1E293B;
+  outline: none;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.modal-input:focus {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.btn-modal-cancel {
+  padding: 0.625rem 1.25rem;
+  background: #F1F5F9;
+  color: #475569;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-modal-cancel:hover {
+  background: #E2E8F0;
+}
+
+.btn-modal-confirm {
+  padding: 0.625rem 1.25rem;
+  background: #3B82F6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-modal-confirm:hover:not(:disabled) {
+  background: #2563EB;
+}
+
+.btn-modal-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Transitions */
+.fade-pop-enter-active, .fade-pop-leave-active {
+  transition: all 0.15s ease;
+}
+.fade-pop-enter-from, .fade-pop-leave-to {
+  opacity: 0;
+  transform: scale(0.95) translateY(-4px);
 }
 </style>

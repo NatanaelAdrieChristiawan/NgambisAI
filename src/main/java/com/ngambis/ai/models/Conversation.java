@@ -47,6 +47,10 @@ public class Conversation {
     @Column(name = "title", length = 255)
     private String title;
 
+    @Column(name = "is_pinned", nullable = false)
+    @Builder.Default
+    private boolean pinned = false;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

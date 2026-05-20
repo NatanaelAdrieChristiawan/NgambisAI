@@ -205,6 +205,72 @@ export const useQuizStore = defineStore('quiz', () => {
     error.value = null
   }
 
+  async function deleteSession(sessionId) {
+    loading.value = true
+    error.value = null
+    try {
+      await quizApi.deleteSession(sessionId)
+      sessions.value = sessions.value.filter(s => s.id !== sessionId)
+      if (currentSession.value?.id === sessionId) {
+        resetQuiz()
+      }
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Gagal menghapus sesi'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function renameSession(sessionId, title) {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await quizApi.renameSession(sessionId, title)
+      const updated = response.data.data
+      const index = sessions.value.findIndex(s => s.id === sessionId)
+      if (index !== -1) {
+        sessions.value[index] = updated
+      }
+      if (currentSession.value?.id === sessionId) {
+        currentSession.value.title = title
+      }
+      return updated
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Gagal mengganti nama sesi'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function pinSession(sessionId, pinned) {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await quizApi.pinSession(sessionId, pinned)
+      const updated = response.data.data
+      const index = sessions.value.findIndex(s => s.id === sessionId)
+      if (index !== -1) {
+        sessions.value[index] = updated
+      }
+      sessions.value.sort((a, b) => {
+        if (a.pinned && !b.pinned) return -1
+        if (!a.pinned && b.pinned) return 1
+        return new Date(b.createdAt) - new Date(a.createdAt)
+      })
+      if (currentSession.value?.id === sessionId) {
+        currentSession.value.pinned = pinned
+      }
+      return updated
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Gagal menyematkan sesi'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   // ===== Storage Persistence =====
   function saveProgress() {
     if (!currentSession.value?.id) return
@@ -261,6 +327,9 @@ export const useQuizStore = defineStore('quiz', () => {
     nextQuestion,
     prevQuestion,
     resetQuiz,
-    clearError
+    clearError,
+    deleteSession,
+    renameSession,
+    pinSession
   }
 })

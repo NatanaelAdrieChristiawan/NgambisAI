@@ -117,7 +117,7 @@ public class ChatService {
 
     @Transactional(readOnly = true)
     public List<ConversationResponse> getConversationsByUser(UUID userId) {
-        return conversationRepository.findByUserIdOrderByUpdatedAtDesc(userId)
+        return conversationRepository.findByUserIdOrderByPinnedDescUpdatedAtDesc(userId)
                 .stream()
                 .map(conv -> toResponse(conv, new ArrayList<>())) // omit messages for list view
                 .collect(Collectors.toList());
@@ -132,6 +132,26 @@ public class ChatService {
                 .orElseThrow(() -> new ResourceNotFoundException("Conversation", "id", conversationId));
         conversationRepository.delete(conversation);
         log.info("Conversation deleted with ID: {}", conversationId);
+    }
+
+    @Transactional
+    public ConversationResponse renameConversation(UUID conversationId, String title) {
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Conversation", "id", conversationId));
+        conversation.setTitle(title);
+        conversation = conversationRepository.save(conversation);
+        log.info("Conversation renamed with ID: {} to title: {}", conversationId, title);
+        return toResponse(conversation, new ArrayList<>());
+    }
+
+    @Transactional
+    public ConversationResponse pinConversation(UUID conversationId, boolean isPinned) {
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Conversation", "id", conversationId));
+        conversation.setPinned(isPinned);
+        conversation = conversationRepository.save(conversation);
+        log.info("Conversation pinned/unpinned with ID: {} to: {}", conversationId, isPinned);
+        return toResponse(conversation, new ArrayList<>());
     }
 
     private ConversationResponse toResponse(Conversation conv, List<ChatMessage> messages) {
@@ -155,6 +175,7 @@ public class ChatService {
                 .id(conv.getId())
                 .userId(conv.getUser().getId())
                 .title(conv.getTitle())
+                .pinned(conv.isPinned())
                 .documents(docResponses)
                 .messages(msgResponses)
                 .createdAt(conv.getCreatedAt())

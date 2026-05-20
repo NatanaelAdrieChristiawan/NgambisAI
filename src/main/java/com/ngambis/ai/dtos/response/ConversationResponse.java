@@ -17,6 +17,7 @@ public class ConversationResponse {
     private UUID id;
     private UUID userId;
     private String title;
+    private boolean pinned;
     private List<DocumentResponse> documents;
     private List<ChatMessageResponse> messages;
     private LocalDateTime createdAt;

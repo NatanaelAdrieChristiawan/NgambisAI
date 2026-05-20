@@ -68,4 +68,38 @@ public class QuizSessionController {
         return ResponseEntity.ok(
                 ApiResponse.success("User sessions retrieved successfully.", sessions));
     }
+
+    /**
+     * Delete a quiz session.
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteSession(@PathVariable UUID id) {
+        log.info("DELETE /api/sessions/{}", id);
+        quizSessionService.deleteSession(id);
+        return ResponseEntity.ok(ApiResponse.success("Quiz session deleted successfully.", null));
+    }
+
+    /**
+     * Rename a quiz session.
+     */
+    @PutMapping("/{id}/rename")
+    public ResponseEntity<ApiResponse<QuizSessionResponse>> renameSession(
+            @PathVariable UUID id,
+            @RequestParam String title) {
+        log.info("PUT /api/sessions/{}/rename — New title: {}", id, title);
+        QuizSessionResponse response = quizSessionService.renameSession(id, title);
+        return ResponseEntity.ok(ApiResponse.success("Quiz session renamed successfully.", response));
+    }
+
+    /**
+     * Pin or unpin a quiz session.
+     */
+    @PutMapping("/{id}/pin")
+    public ResponseEntity<ApiResponse<QuizSessionResponse>> pinSession(
+            @PathVariable UUID id,
+            @RequestParam boolean isPinned) {
+        log.info("PUT /api/sessions/{}/pin — Pinned: {}", id, isPinned);
+        QuizSessionResponse response = quizSessionService.pinSession(id, isPinned);
+        return ResponseEntity.ok(ApiResponse.success("Quiz session pin status updated successfully.", response));
+    }
 }

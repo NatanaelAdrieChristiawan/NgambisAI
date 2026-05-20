@@ -42,9 +42,20 @@ public class QuizSession {
     @Column(name = "persona_type", nullable = false, length = 50)
     private PersonaType personaType;
 
+    @Column(name = "title", length = 255)
+    private String title;
+
+    @Column(name = "is_pinned", nullable = false)
+    @Builder.Default
+    private boolean pinned = false;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @org.hibernate.annotations.UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -52,3 +63,4 @@ public class QuizSession {
     @EqualsAndHashCode.Exclude
     private List<QuizItem> quizItems = new ArrayList<>();
 }
+

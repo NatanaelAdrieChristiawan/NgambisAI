@@ -68,4 +68,28 @@ public class ChatController {
         
         return ResponseEntity.ok(ApiResponse.success("Conversation deleted successfully", null));
     }
+
+    @PutMapping("/conversations/{id}/rename")
+    @Operation(summary = "Rename conversation", description = "Renames a specific conversation's title")
+    public ResponseEntity<ApiResponse<ConversationResponse>> renameConversation(
+            @PathVariable UUID id,
+            @RequestParam String title) {
+        log.info("PUT /api/chat/conversations/{}/rename — New title: {}", id, title);
+        
+        ConversationResponse response = chatService.renameConversation(id, title);
+        
+        return ResponseEntity.ok(ApiResponse.success("Conversation renamed successfully", response));
+    }
+
+    @PutMapping("/conversations/{id}/pin")
+    @Operation(summary = "Pin conversation", description = "Pins or unpins a specific conversation")
+    public ResponseEntity<ApiResponse<ConversationResponse>> pinConversation(
+            @PathVariable UUID id,
+            @RequestParam boolean isPinned) {
+        log.info("PUT /api/chat/conversations/{}/pin — Pinned: {}", id, isPinned);
+        
+        ConversationResponse response = chatService.pinConversation(id, isPinned);
+        
+        return ResponseEntity.ok(ApiResponse.success("Conversation pin status updated successfully", response));
+    }
 }

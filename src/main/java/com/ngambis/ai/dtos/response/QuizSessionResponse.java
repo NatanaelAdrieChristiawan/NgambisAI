@@ -23,7 +23,10 @@ public class QuizSessionResponse {
     private UUID userId;
     private UUID documentId;
     private String documentFilename;
+    private String title;
+    private boolean pinned;
     private PersonaType personaType;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private List<QuizItemResponse> quizItems;
 }

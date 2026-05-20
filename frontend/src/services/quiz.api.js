@@ -32,6 +32,32 @@ const quizApi = {
    */
   getUserSessions(userId) {
     return api.get(`/api/sessions/user/${userId}`)
+  },
+
+  /**
+   * Delete a quiz session.
+   * @param {string} sessionId
+   */
+  deleteSession(sessionId) {
+    return api.delete(`/api/sessions/${sessionId}`)
+  },
+
+  /**
+   * Rename a quiz session title.
+   * @param {string} sessionId
+   * @param {string} title
+   */
+  renameSession(sessionId, title) {
+    return api.put(`/api/sessions/${sessionId}/rename`, null, { params: { title } })
+  },
+
+  /**
+   * Pin or unpin a quiz session.
+   * @param {string} sessionId
+   * @param {boolean} pinned
+   */
+  pinSession(sessionId, pinned) {
+    return api.put(`/api/sessions/${sessionId}/pin`, null, { params: { isPinned: pinned } })
   }
 }
 
