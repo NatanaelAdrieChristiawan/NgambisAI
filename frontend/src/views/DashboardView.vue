@@ -53,9 +53,9 @@ function formatRelativeTime(dateStr) {
 }
 
 const learningTools = [
-  { icon: 'flashcard', iconBg: '#3B82F6', title: 'Smart Flashcards', description: 'Ubah catatan rumit menjadi kartu memori interaktif menggunakan AI. Cocok untuk menghafal terminologi OS.', tag: 'AI Generated', tagColor: '#3B82F6', action: 'Mulai Belajar', route: '/flashcards' },
-  { icon: 'voice', iconBg: '#10B981', title: 'Voice to Speech', description: 'Simulasi ujian lisan dengan AI. Jawab soal secara verbal dan dapatkan evaluasi instan.', tag: 'Web Speech API', tagColor: '#10B981', action: 'Mulai Simulasi', route: '/voice-to-speech' },
-  { icon: 'quiz', iconBg: '#F59E0B', title: 'Adaptive Quiz', description: 'Tes pemahamanmu dengan kuis pilihan ganda yang dihasilkan AI dari dokumen kuliahmu.', tag: 'AI Powered', tagColor: '#F59E0B', action: 'Ambil Quiz', route: '/quiz-mode' }
+  { icon: 'flashcard', iconBg: '#3B82F6', title: 'Flashcard Pintar', description: 'Ubah catatan rumit menjadi kartu memori interaktif menggunakan AI. Cocok untuk menghafal terminologi OS.', tag: 'Dibuat AI', tagColor: '#3B82F6', action: 'Mulai Belajar', route: '/flashcards' },
+  { icon: 'voice', iconBg: '#10B981', title: 'Ujian Lisan', description: 'Simulasi ujian lisan dengan AI. Jawab soal secara verbal dan dapatkan evaluasi instan.', tag: 'Web Speech API', tagColor: '#10B981', action: 'Mulai Simulasi', route: '/voice-to-speech' },
+  { icon: 'quiz', iconBg: '#F59E0B', title: 'Kuis Adaptif', description: 'Tes pemahamanmu dengan kuis pilihan ganda yang dihasilkan AI dari dokumen kuliahmu.', tag: 'Didukung AI', tagColor: '#F59E0B', action: 'Ambil Quiz', route: '/quiz-mode' }
 ]
 
 function handleNewChat() { router.push('/chat') }
@@ -101,7 +101,7 @@ onMounted(async () => {
             <div class="dropdown-divider"></div>
             <button class="dropdown-item" @click="handleLogout">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-              Logout
+              Keluar
             </button>
           </div>
         </div>
@@ -112,7 +112,7 @@ onMounted(async () => {
       <!-- Welcome -->
       <section class="welcome-section">
         <div class="welcome-left">
-          <div class="welcome-badge">WELCOME BACK, {{ displayName.toUpperCase() }}!</div>
+          <div class="welcome-badge">SELAMAT DATANG KEMBALI, {{ displayName.toUpperCase() }}!</div>
           <h1 class="welcome-title">Siap Untuk Ngambis<br/>Hari Ini?</h1>
         </div>
         <div class="welcome-right">
@@ -125,7 +125,7 @@ onMounted(async () => {
 
       <!-- History -->
       <section class="history-section">
-        <div class="sec-label">HISTORY</div>
+        <div class="sec-label">RIWAYAT</div>
         <div class="history-grid">
           <button class="h-card h-card-new" @click="handleNewChat">
             <div class="new-icon">
@@ -156,7 +156,7 @@ onMounted(async () => {
       <!-- Learning Tools -->
       <section class="tools-section">
         <div class="tools-head">
-          <h2 class="sec-label">Powerful Learning Tools</h2>
+          <h2 class="sec-label">Fitur Belajar Unggulan</h2>
         </div>
         <div class="tools-grid">
           <button v-for="(tool, i) in learningTools" :key="tool.title" class="t-card" :style="{'--td': i * 0.1 + 's'}" @click="handleToolClick(tool)">

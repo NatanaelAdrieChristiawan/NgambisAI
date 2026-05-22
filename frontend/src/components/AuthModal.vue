@@ -93,7 +93,7 @@ function handleOverlayClick(e) { if (e.target === e.currentTarget) closeModal() 
               <img v-if="activeTab === 'login'" class="logo-icon" src="/logo/ngambis.png" alt="Ngambis.AI" width="30" height="30"/>
                 <h2><span class="brand-dark">NGAMBIS</span><span class="brand-accent">.AI</span></h2>
               </div>
-              <p class="modal-subtitle">{{ activeTab === 'login' ? 'INTERACTIVE QUIZ & ORAL EXAM SIMULATOR' : 'PROTOKOL NGAMBIS.AI' }}</p>
+              <p class="modal-subtitle">{{ activeTab === 'login' ? 'SIMULATOR KUIS INTERAKTIF & UJIAN LISAN' : 'PROTOKOL NGAMBIS.AI' }}</p>
             </div>
 
             <!-- Tabs -->

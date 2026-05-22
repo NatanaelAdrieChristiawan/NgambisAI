@@ -394,7 +394,7 @@ onBeforeUnmount(() => {
         <div v-if="showUserMenu" class="chat-user-dropdown">
           <div class="dd-info"><span class="dd-name">{{ displayName }}</span><span class="dd-email">{{ authStore.userEmail }}</span></div>
           <div class="dd-div"></div>
-          <button class="dd-item" @click="handleLogout">Logout</button>
+          <button class="dd-item" @click="handleLogout">Keluar</button>
         </div>
       </div>
     </header>

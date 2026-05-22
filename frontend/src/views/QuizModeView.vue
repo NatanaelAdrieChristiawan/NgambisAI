@@ -25,6 +25,45 @@ const personaType = ref('FRIENDLY_SENIOR')
 const timerLimit = ref(15)
 const setupError = ref(null)
 
+// Custom dropdowns
+const showDifficultyDropdown = ref(false)
+const showDurationDropdown = ref(false)
+
+function toggleDifficultyDropdown(e) {
+  e.stopPropagation()
+  showDifficultyDropdown.value = !showDifficultyDropdown.value
+  showDurationDropdown.value = false
+}
+
+function toggleDurationDropdown(e) {
+  e.stopPropagation()
+  showDurationDropdown.value = !showDurationDropdown.value
+  showDifficultyDropdown.value = false
+}
+
+function selectDifficulty(val) {
+  personaType.value = val
+  showDifficultyDropdown.value = false
+}
+
+function selectDuration(val) {
+  timerLimit.value = val
+  showDurationDropdown.value = false
+}
+
+function closeAllDropdowns() {
+  showDifficultyDropdown.value = false
+  showDurationDropdown.value = false
+}
+
+function getDurationLabel(limit) {
+  if (limit === 10) return '10 Detik'
+  if (limit === 15) return '15 Detik'
+  if (limit === 30) return '30 Detik'
+  if (limit === 60) return '60 Detik'
+  return 'Latihan (Tanpa Timer)'
+}
+
 watch(questionCount, (newVal) => {
   if (newVal !== null && newVal !== '') {
     const num = Number(newVal)
@@ -220,6 +259,7 @@ function handleNewQuiz() {
 
 onMounted(() => {
   docStore.loadDocuments()
+  window.addEventListener('click', closeAllDropdowns)
   if (quizStore.quizItems.length > 0 && quizStore.currentQuestion?.itemType === 'MULTIPLE_CHOICE') {
     showSetup.value = false; loadCurrentQuestionState()
   }
@@ -235,7 +275,10 @@ watch(() => quizStore.currentSession, (newSession) => {
     clearInterval(timerInterval)
   }
 })
-onUnmounted(() => clearInterval(timerInterval))
+onUnmounted(() => {
+  clearInterval(timerInterval)
+  window.removeEventListener('click', closeAllDropdowns)
+})
 </script>
 
 <template>
@@ -258,7 +301,7 @@ onUnmounted(() => clearInterval(timerInterval))
         <div v-if="showUserMenu" class="qz-user-dropdown">
           <div class="dd-info"><span class="dd-name">{{ displayName }}</span><span class="dd-email">{{ authStore.userEmail }}</span></div>
           <div class="dd-div"></div>
-          <button class="dd-item" @click="handleLogout">Logout</button>
+          <button class="dd-item" @click="handleLogout">Keluar</button>
         </div>
       </div>
     </header>
@@ -275,23 +318,88 @@ onUnmounted(() => clearInterval(timerInterval))
         <p>Upload dokumen PDF dan AI akan membuat soal pilihan ganda.</p>
         <DocumentManager mode="chip" />
         <div class="setup-options">
-          <div class="setup-opt"><label>Jumlah Soal:</label><input type="number" v-model.number="questionCount" min="1" max="10" placeholder="Maks 10" /></div>
+          <div class="setup-opt">
+            <label>Jumlah Soal:</label>
+            <input type="number" v-model.number="questionCount" min="1" max="10" placeholder="Maks 10" />
+          </div>
           <div class="setup-opt">
             <label>Tingkat Kesulitan:</label>
-            <select v-model="personaType">
-              <option value="FRIENDLY_SENIOR">Mudah (Easy)</option>
-              <option value="STRICT_LECTURER">Sulit (Hard)</option>
-            </select>
+            <div class="custom-dropdown-container">
+              <button type="button" class="custom-dropdown-trigger" @click="toggleDifficultyDropdown">
+                <span>{{ personaType === 'FRIENDLY_SENIOR' ? 'Mudah (Easy)' : 'Sulit (Hard)' }}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron-icon" :class="{ 'rotated': showDifficultyDropdown }">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              <Transition name="dropdown-fade">
+                <div v-if="showDifficultyDropdown" class="custom-dropdown-options">
+                  <div 
+                    class="custom-dropdown-option" 
+                    :class="{ 'selected': personaType === 'FRIENDLY_SENIOR' }"
+                    @click="selectDifficulty('FRIENDLY_SENIOR')"
+                  >
+                    Mudah (Easy)
+                  </div>
+                  <div 
+                    class="custom-dropdown-option" 
+                    :class="{ 'selected': personaType === 'STRICT_LECTURER' }"
+                    @click="selectDifficulty('STRICT_LECTURER')"
+                  >
+                    Sulit (Hard)
+                  </div>
+                </div>
+              </Transition>
+            </div>
           </div>
-          <div class="setup-opt" style="grid-column: span 2;">
+          <div class="setup-opt">
             <label>Durasi per Soal:</label>
-            <select v-model="timerLimit">
-              <option :value="10">10 Detik</option>
-              <option :value="15">15 Detik</option>
-              <option :value="30">30 Detik</option>
-              <option :value="60">60 Detik</option>
-              <option :value="0">Latihan (Tanpa Timer)</option>
-            </select>
+            <div class="custom-dropdown-container">
+              <button type="button" class="custom-dropdown-trigger" @click="toggleDurationDropdown">
+                <span>{{ getDurationLabel(timerLimit) }}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron-icon" :class="{ 'rotated': showDurationDropdown }">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              <Transition name="dropdown-fade">
+                <div v-if="showDurationDropdown" class="custom-dropdown-options">
+                  <div 
+                    class="custom-dropdown-option" 
+                    :class="{ 'selected': timerLimit === 10 }"
+                    @click="selectDuration(10)"
+                  >
+                    10 Detik
+                  </div>
+                  <div 
+                    class="custom-dropdown-option" 
+                    :class="{ 'selected': timerLimit === 15 }"
+                    @click="selectDuration(15)"
+                  >
+                    15 Detik
+                  </div>
+                  <div 
+                    class="custom-dropdown-option" 
+                    :class="{ 'selected': timerLimit === 30 }"
+                    @click="selectDuration(30)"
+                  >
+                    30 Detik
+                  </div>
+                  <div 
+                    class="custom-dropdown-option" 
+                    :class="{ 'selected': timerLimit === 60 }"
+                    @click="selectDuration(60)"
+                  >
+                    60 Detik
+                  </div>
+                  <div 
+                    class="custom-dropdown-option" 
+                    :class="{ 'selected': timerLimit === 0 }"
+                    @click="selectDuration(0)"
+                  >
+                    Latihan (Tanpa Timer)
+                  </div>
+                </div>
+              </Transition>
+            </div>
           </div>
         </div>
         <div v-if="setupError" class="setup-error">{{ setupError }}</div>
@@ -308,7 +416,7 @@ onUnmounted(() => clearInterval(timerInterval))
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
               </svg>
-              <span>Generate Quiz</span>
+              <span>Buat Kuis</span>
             </span>
           </button>
         </div>
@@ -329,7 +437,7 @@ onUnmounted(() => clearInterval(timerInterval))
         </div>
         <h2>Quiz Selesai!</h2>
         <div class="finished-score">
-          {{ normalizedScore }} <span class="pts-text">/ 100 pts</span>
+          {{ normalizedScore }} <span class="pts-text">/ 100 poin</span>
         </div>
         <p>Kamu menjawab benar {{ correctCount }} dari {{ totalQuestions }} soal</p>
 
@@ -397,7 +505,7 @@ onUnmounted(() => clearInterval(timerInterval))
       <div class="qz-session-bar">
         <div class="session-left"><span class="session-label">SESI AKTIF</span><h2 class="session-title">{{ quizStore.currentSession?.documentFilename || 'Quiz' }}</h2></div>
         <div class="session-center"><span class="session-progress-pill"><strong>{{ questionNumber }} / {{ totalQuestions }}</strong> Pertanyaan</span></div>
-        <div class="session-right"><span class="score-label">SKOR ANDA</span><span class="score-value">{{ formattedScore }} pts</span></div>
+        <div class="session-right"><span class="score-label">SKOR ANDA</span><span class="score-value">{{ formattedScore }} poin</span></div>
       </div>
       <div class="qz-progress-bar"><div class="qz-progress-fill" :style="{ width: progressPercent + '%' }"></div></div>
 
@@ -476,13 +584,97 @@ onUnmounted(() => clearInterval(timerInterval))
 .doc-list-mini { display:flex; flex-wrap:wrap; gap:.5rem; }
 .doc-chip { display:inline-flex; align-items:center; gap:.375rem; padding:.5rem .75rem; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:.8125rem; cursor:pointer; transition:all .2s; }
 .doc-chip.selected { border-color:#3B82F6; background:#EFF6FF; } .doc-chip input { display:none; }
-.setup-options { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-top:1.75rem; margin-bottom:2rem; text-align:left; width:100%; }
+.setup-options { display:flex; flex-direction:column; gap:1.25rem; margin-top:1.75rem; margin-bottom:2rem; text-align:left; width:100%; }
 .setup-opt { display:flex; flex-direction:column; align-items:stretch; gap:0.5rem; }
 .setup-opt label { font-size:0.8125rem; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.05em; line-height: 1.2; }
-.setup-opt select, .setup-opt input[type="number"] { padding:0.75rem 1rem; border:1.5px solid #E2E8F0; border-radius:12px; font-size:0.9375rem; font-weight:500; color:#1E293B; background-color:#FFF; transition:border-color 0.2s, box-shadow 0.2s; }
-.setup-opt select { padding-right:2.25rem; background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position:right 0.75rem center; background-size:1.25rem; background-repeat:no-repeat; appearance:none; cursor:pointer; }
-.setup-opt select:hover, .setup-opt input[type="number"]:hover { border-color:#CBD5E1; }
-.setup-opt select:focus, .setup-opt input[type="number"]:focus { outline:none; border-color:#3B82F6; box-shadow:0 0 0 3px rgba(59, 130, 246, 0.15); }
+.setup-opt input[type="number"] { padding:0.75rem 1rem; border:1.5px solid #E2E8F0; border-radius:12px; font-size:0.9375rem; font-weight:500; color:#1E293B; background-color:#FFF; transition:border-color 0.2s, box-shadow 0.2s; width:100%; }
+.setup-opt input[type="number"]:hover { border-color:#CBD5E1; }
+.setup-opt input[type="number"]:focus { outline:none; border-color:#3B82F6; box-shadow:0 0 0 3px rgba(59, 130, 246, 0.15); }
+
+/* Custom Dropdown Container */
+.custom-dropdown-container {
+  position: relative;
+  width: 100%;
+}
+.custom-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #1E293B;
+  background-color: #FFF;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+  text-align: left;
+}
+.custom-dropdown-trigger:hover {
+  border-color: #CBD5E1;
+  background-color: #F8FAFC;
+}
+.custom-dropdown-trigger:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+.chevron-icon {
+  color: #64748B;
+  transition: transform 0.2s ease;
+}
+.chevron-icon.rotated {
+  transform: rotate(180deg);
+}
+
+/* Custom Dropdown Options */
+.custom-dropdown-options {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #FFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  padding: 0.375rem;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.custom-dropdown-option {
+  padding: 0.625rem 0.875rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.custom-dropdown-option:hover {
+  background-color: #F1F5F9;
+  color: #1E293B;
+}
+.custom-dropdown-option.selected {
+  background-color: #EFF6FF;
+  color: #2563EB;
+  font-weight: 600;
+}
+
+/* Vue Transitions */
+.dropdown-fade-enter-active,
+.dropdown-fade-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.dropdown-fade-enter-from,
+.dropdown-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
 .setup-error { padding:.625rem; background:#FEF2F2; color:#DC2626; border-radius:8px; font-size:.8125rem; margin-bottom:1rem; }
 .setup-actions { display:flex; gap:.75rem; justify-content:center; flex-wrap:wrap; }
 .btn-upload-setup { padding:.75rem 1.25rem; background:#F1F5F9; color:#475569; border:1px solid #E2E8F0; border-radius:10px; font-size:.875rem; font-weight:600; cursor:pointer; } .btn-upload-setup:hover { background:#E2E8F0; } .btn-upload-setup:disabled { opacity:.5; }
@@ -583,6 +775,6 @@ onUnmounted(() => clearInterval(timerInterval))
   .qz-option { padding:1.25rem; font-size:1rem; }
   .timer-circle { width:44px; height:44px; top:1rem; left:1rem; }
   .setup-card { padding:2rem 1.5rem; }
-  .setup-opt label { min-height: 2.25rem; display: flex; align-items: flex-end; }
+  /* Label min-height removed to align properly under vertical layout */
 }
 </style>

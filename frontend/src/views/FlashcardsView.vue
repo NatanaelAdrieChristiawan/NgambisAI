@@ -110,7 +110,7 @@ watch(() => quizStore.currentSession, (newSession) => {
         <div v-if="showUserMenu" class="fc-user-dropdown">
           <div class="dd-info"><span class="dd-name">{{ displayName }}</span><span class="dd-email">{{ authStore.userEmail }}</span></div>
           <div class="dd-div"></div>
-          <button class="dd-item" @click="handleLogout">Logout</button>
+          <button class="dd-item" @click="handleLogout">Keluar</button>
         </div>
       </div>
     </header>
@@ -167,7 +167,7 @@ watch(() => quizStore.currentSession, (newSession) => {
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
               </svg>
-              <span>Generate Flashcards</span>
+              <span>Buat Flashcard</span>
             </span>
           </button>
         </div>
@@ -180,8 +180,8 @@ watch(() => quizStore.currentSession, (newSession) => {
         <div class="fc-prog-left">
           <div class="fc-prog-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div>
           <div class="fc-prog-text">
-            <h2>{{ quizStore.currentSession?.documentFilename || 'Flashcards' }}</h2>
-            <p>Flashcard Session • AI Generated</p>
+            <h2>{{ quizStore.currentSession?.documentFilename || 'Flashcard' }}</h2>
+            <p>Sesi Flashcard • Dibuat AI</p>
           </div>
         </div>
         <div class="fc-prog-right">
@@ -204,7 +204,7 @@ watch(() => quizStore.currentSession, (newSession) => {
             </div>
           </div>
           <div class="fc-face fc-back" @click="flipCard">
-            <div class="verified-badge">AI Answer</div>
+            <div class="verified-badge">Jawaban AI</div>
             <div class="back-q-section">
               <div class="back-label"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> PERTANYAAN</div>
               <h2 class="back-q">{{ currentCard.questionText }}</h2>

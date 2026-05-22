@@ -25,6 +25,37 @@ const questionCount = ref(3)
 const personaType = ref('FRIENDLY_SENIOR')
 const setupError = ref(null)
 
+// Custom dropdowns
+const showQuestionCountDropdown = ref(false)
+const showPersonaDropdown = ref(false)
+
+function toggleQuestionCountDropdown(e) {
+  e.stopPropagation()
+  showQuestionCountDropdown.value = !showQuestionCountDropdown.value
+  showPersonaDropdown.value = false
+}
+
+function togglePersonaDropdown(e) {
+  e.stopPropagation()
+  showPersonaDropdown.value = !showPersonaDropdown.value
+  showQuestionCountDropdown.value = false
+}
+
+function selectQuestionCount(val) {
+  questionCount.value = val
+  showQuestionCountDropdown.value = false
+}
+
+function selectPersona(val) {
+  personaType.value = val
+  showPersonaDropdown.value = false
+}
+
+function closeAllDropdowns() {
+  showQuestionCountDropdown.value = false
+  showPersonaDropdown.value = false
+}
+
 // Speech recognition
 const isRecording = ref(false)
 const transcript = ref('')
@@ -86,6 +117,7 @@ function resetLocalState() {
 
 onMounted(() => {
   docStore.loadDocuments()
+  window.addEventListener('click', closeAllDropdowns)
   speechSupported.value = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
   if (quizStore.quizItems.length > 0 && quizStore.currentQuestion?.itemType === 'ESSAY') {
     showSetup.value = false
@@ -181,7 +213,10 @@ async function startSession() {
 function handleNewSession() { quizStore.resetQuiz(); docStore.clearSelection(); showSetup.value = true; resetLocalState() }
 function getScoreColor(s) { if (s >= 80) return '#10B981'; if (s >= 60) return '#F59E0B'; return '#EF4444' }
 
-onUnmounted(() => { stopRecording() })
+onUnmounted(() => {
+  stopRecording()
+  window.removeEventListener('click', closeAllDropdowns)
+})
 </script>
 
 <template>
@@ -204,7 +239,7 @@ onUnmounted(() => { stopRecording() })
         <div v-if="showUserMenu" class="vs-user-dropdown">
           <div class="dd-info"><span class="dd-name">{{ displayName }}</span><span class="dd-email">{{ authStore.userEmail }}</span></div>
           <div class="dd-div"></div>
-          <button class="dd-item" @click="handleLogout">Logout</button>
+          <button class="dd-item" @click="handleLogout">Keluar</button>
         </div>
       </div>
     </header>
@@ -233,18 +268,68 @@ onUnmounted(() => { stopRecording() })
         <div class="setup-options">
           <div class="setup-opt">
             <label>Jumlah Soal:</label>
-            <select v-model="questionCount">
-              <option :value="2">2</option>
-              <option :value="3">3</option>
-              <option :value="5">5</option>
-            </select>
+            <div class="custom-dropdown-container">
+              <button type="button" class="custom-dropdown-trigger" @click="toggleQuestionCountDropdown">
+                <span>{{ questionCount }}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron-icon" :class="{ 'rotated': showQuestionCountDropdown }">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              <Transition name="dropdown-fade">
+                <div v-if="showQuestionCountDropdown" class="custom-dropdown-options">
+                  <div 
+                    class="custom-dropdown-option" 
+                    :class="{ 'selected': questionCount === 2 }"
+                    @click="selectQuestionCount(2)"
+                  >
+                    2
+                  </div>
+                  <div 
+                    class="custom-dropdown-option" 
+                    :class="{ 'selected': questionCount === 3 }"
+                    @click="selectQuestionCount(3)"
+                  >
+                    3
+                  </div>
+                  <div 
+                    class="custom-dropdown-option" 
+                    :class="{ 'selected': questionCount === 5 }"
+                    @click="selectQuestionCount(5)"
+                  >
+                    5
+                  </div>
+                </div>
+              </Transition>
+            </div>
           </div>
           <div class="setup-opt">
             <label>Persona AI:</label>
-            <select v-model="personaType">
-              <option value="FRIENDLY_SENIOR">Kakak Senior</option>
-              <option value="STRICT_LECTURER">Dosen Tegas</option>
-            </select>
+            <div class="custom-dropdown-container">
+              <button type="button" class="custom-dropdown-trigger" @click="togglePersonaDropdown">
+                <span>{{ personaType === 'FRIENDLY_SENIOR' ? 'Kakak Senior' : 'Dosen Tegas' }}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron-icon" :class="{ 'rotated': showPersonaDropdown }">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              <Transition name="dropdown-fade">
+                <div v-if="showPersonaDropdown" class="custom-dropdown-options">
+                  <div 
+                    class="custom-dropdown-option" 
+                    :class="{ 'selected': personaType === 'FRIENDLY_SENIOR' }"
+                    @click="selectPersona('FRIENDLY_SENIOR')"
+                  >
+                    Kakak Senior
+                  </div>
+                  <div 
+                    class="custom-dropdown-option" 
+                    :class="{ 'selected': personaType === 'STRICT_LECTURER' }"
+                    @click="selectPersona('STRICT_LECTURER')"
+                  >
+                    Dosen Tegas
+                  </div>
+                </div>
+              </Transition>
+            </div>
           </div>
         </div>
         <div v-if="setupError" class="setup-error">{{ setupError }}</div>
@@ -414,13 +499,94 @@ onUnmounted(() => { stopRecording() })
 .setup-docs { text-align:left; margin-bottom:1.25rem; } .setup-label { display:block; font-size:.8125rem; font-weight:700; color:#475569; margin-bottom:.5rem; }
 .doc-list-mini { display:flex; flex-wrap:wrap; gap:.5rem; }
 .doc-chip { display:inline-flex; align-items:center; gap:.375rem; padding:.5rem .75rem; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:.8125rem; cursor:pointer; } .doc-chip.selected { border-color:#3B82F6; background:#EFF6FF; } .doc-chip input { display:none; }
-.setup-options { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-top:1.75rem; margin-bottom:2rem; text-align:left; width:100%; }
+.setup-options { display:flex; flex-direction:column; gap:1.25rem; margin-top:1.75rem; margin-bottom:2rem; text-align:left; width:100%; }
 .setup-opt { display:flex; flex-direction:column; align-items:stretch; gap:0.5rem; }
 .setup-opt label { font-size:0.8125rem; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.05em; line-height: 1.2; }
-.setup-opt select { padding:0.75rem 1rem; border:1.5px solid #E2E8F0; border-radius:12px; font-size:0.9375rem; font-weight:500; color:#1E293B; background-color:#FFF; transition:border-color 0.2s, box-shadow 0.2s; }
-.setup-opt select { padding-right:2.25rem; background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position:right 0.75rem center; background-size:1.25rem; background-repeat:no-repeat; appearance:none; cursor:pointer; }
-.setup-opt select:hover { border-color:#CBD5E1; }
-.setup-opt select:focus { outline:none; border-color:#3B82F6; box-shadow:0 0 0 3px rgba(59, 130, 246, 0.15); }
+
+/* Custom Dropdown Container */
+.custom-dropdown-container {
+  position: relative;
+  width: 100%;
+}
+.custom-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #1E293B;
+  background-color: #FFF;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+  text-align: left;
+}
+.custom-dropdown-trigger:hover {
+  border-color: #CBD5E1;
+  background-color: #F8FAFC;
+}
+.custom-dropdown-trigger:focus {
+  outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+.chevron-icon {
+  color: #64748B;
+  transition: transform 0.2s ease;
+}
+.chevron-icon.rotated {
+  transform: rotate(180deg);
+}
+
+/* Custom Dropdown Options */
+.custom-dropdown-options {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #FFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  padding: 0.375rem;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.custom-dropdown-option {
+  padding: 0.625rem 0.875rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+.custom-dropdown-option:hover {
+  background-color: #F1F5F9;
+  color: #1E293B;
+}
+.custom-dropdown-option.selected {
+  background-color: #EFF6FF;
+  color: #2563EB;
+  font-weight: 600;
+}
+
+/* Vue Transitions */
+.dropdown-fade-enter-active,
+.dropdown-fade-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.dropdown-fade-enter-from,
+.dropdown-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
 .setup-error { padding:.625rem; background:#FEF2F2; color:#DC2626; border-radius:8px; font-size:.8125rem; margin-bottom:1rem; }
 .setup-actions { display:flex; gap:.75rem; justify-content:center; flex-wrap:wrap; }
 .btn-upload-setup { padding:.75rem 1.25rem; background:#F1F5F9; color:#475569; border:1px solid #E2E8F0; border-radius:10px; font-size:.875rem; font-weight:600; cursor:pointer; } .btn-upload-setup:disabled { opacity:.5; }
@@ -479,6 +645,6 @@ onUnmounted(() => { stopRecording() })
   .record-btn { width:72px; height:72px; }
   .setup-card,.finished-card { padding:2rem 1.5rem; }
   .eval-header { flex-wrap:wrap; }
-  .setup-opt label { min-height: 2.25rem; display: flex; align-items: flex-end; }
+  /* Label min-height removed to align properly under vertical layout */
 }
 </style>
