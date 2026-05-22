@@ -53,9 +53,9 @@ function formatRelativeTime(dateStr) {
 }
 
 const learningTools = [
-  { icon: 'flashcard', iconBg: '#3B82F6', title: 'Smart Flashcards', description: 'Ubah catatan rumit menjadi kartu memori interaktif menggunakan AI. Cocok untuk menghafal terminologi OS.', tag: 'AI Generated', tagColor: '#3B82F6', action: 'Mulai Belajar', actionIcon: '↗', route: '/flashcards' },
-  { icon: 'voice', iconBg: '#10B981', title: 'Voice to Speech', description: 'Simulasi ujian lisan dengan AI. Jawab soal secara verbal dan dapatkan evaluasi instan.', tag: 'Web Speech API', tagColor: '#10B981', action: 'Mulai Simulasi', actionIcon: '🔊', route: '/voice-to-speech' },
-  { icon: 'quiz', iconBg: '#F59E0B', title: 'Adaptive Quiz', description: 'Tes pemahamanmu dengan kuis pilihan ganda yang dihasilkan AI dari dokumen kuliahmu.', tag: 'AI Powered', tagColor: '#F59E0B', action: 'Ambil Quiz', actionIcon: '⚡', route: '/quiz-mode' }
+  { icon: 'flashcard', iconBg: '#3B82F6', title: 'Smart Flashcards', description: 'Ubah catatan rumit menjadi kartu memori interaktif menggunakan AI. Cocok untuk menghafal terminologi OS.', tag: 'AI Generated', tagColor: '#3B82F6', action: 'Mulai Belajar', route: '/flashcards' },
+  { icon: 'voice', iconBg: '#10B981', title: 'Voice to Speech', description: 'Simulasi ujian lisan dengan AI. Jawab soal secara verbal dan dapatkan evaluasi instan.', tag: 'Web Speech API', tagColor: '#10B981', action: 'Mulai Simulasi', route: '/voice-to-speech' },
+  { icon: 'quiz', iconBg: '#F59E0B', title: 'Adaptive Quiz', description: 'Tes pemahamanmu dengan kuis pilihan ganda yang dihasilkan AI dari dokumen kuliahmu.', tag: 'AI Powered', tagColor: '#F59E0B', action: 'Ambil Quiz', route: '/quiz-mode' }
 ]
 
 function handleNewChat() { router.push('/chat') }
@@ -169,7 +169,12 @@ onMounted(async () => {
             <p class="t-desc">{{ tool.description }}</p>
             <div class="t-foot">
               <span class="t-tag" :style="{ color: tool.tagColor, background: tool.tagColor + '15' }">{{ tool.tag }}</span>
-              <span class="t-action">{{ tool.action }} {{ tool.actionIcon }}</span>
+              <span class="t-action">
+                <span>{{ tool.action }}</span>
+                <svg class="action-arrow" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+                </svg>
+              </span>
             </div>
           </button>
         </div>
@@ -262,8 +267,10 @@ onMounted(async () => {
 .t-desc { font-size: 0.8125rem; line-height: 1.6; color: #64748B; margin-bottom: 1.25rem; flex: 1; }
 .t-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
 .t-tag { font-size: 0.6875rem; font-weight: 600; padding: 0.25rem 0.625rem; border-radius: 6px; white-space: nowrap; }
-.t-action { font-size: 0.8125rem; font-weight: 600; color: #475569; transition: color 0.2s; }
+.t-action { font-size: 0.8125rem; font-weight: 600; color: #475569; transition: color 0.2s; display: inline-flex; align-items: center; gap: 0.25rem; }
 .t-card:hover .t-action { color: #3B82F6; }
+.action-arrow { transition: transform 0.2s ease; }
+.t-card:hover .action-arrow { transform: translateX(3px); }
 
 /* Responsive */
 @media (max-width: 768px) {
