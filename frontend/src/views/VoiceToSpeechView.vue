@@ -207,7 +207,7 @@ async function startSession() {
   try {
     await quizStore.createSession({ documentIds: docStore.selectedDocumentIds, personaType: personaType.value, questionCount: questionCount.value, itemType: 'ESSAY' })
     showSetup.value = false; resetLocalState(); saveProgress()
-  } catch (err) { setupError.value = quizStore.error || 'Gagal membuat sesi.' }
+  } catch (err) { setupError.value = quizStore.error || 'Gagal membuat simulasi ujian lisan.' }
 }
 
 function handleNewSession() { quizStore.resetQuiz(); docStore.clearSelection(); showSetup.value = true; resetLocalState() }
@@ -228,7 +228,7 @@ onUnmounted(() => {
         </button>
         <button class="btn-new-session" @click="handleNewSession">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-          Sesi Baru
+          Simulasi Baru
         </button>
       </div>
       <div class="vs-user-area" @click.stop>
@@ -367,7 +367,7 @@ onUnmounted(() => {
             <path d="M12 2a5 5 0 0 1 5 5v5a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"/>
           </svg>
         </div>
-        <h2>Simulasi Selesai!</h2>
+        <h2>Simulasi Ujian Lisan Selesai!</h2>
         <div class="eval-summary">
           <div v-for="(ev, i) in evaluations" :key="i" class="eval-item">
             <div class="eval-q">{{ i + 1 }}. {{ ev.question }}</div>
@@ -380,7 +380,7 @@ onUnmounted(() => {
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
             </svg>
-            <span>Sesi Baru</span>
+            <span>Simulasi Baru</span>
           </span>
         </button>
       </div>

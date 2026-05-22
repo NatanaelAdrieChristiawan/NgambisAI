@@ -64,7 +64,7 @@ async function startFlashcards() {
     showSetup.value = false
     isFlipped.value = false
   } catch (err) {
-    setupError.value = quizStore.error || 'Gagal membuat flashcard.'
+    setupError.value = quizStore.error || 'Gagal membuat flashcard pintar.'
   }
 }
 
@@ -99,7 +99,7 @@ watch(() => quizStore.currentSession, (newSession) => {
         </button>
         <button class="btn-new" @click="handleNewFlashcard">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-          Flashcard Baru
+          Flashcard Pintar Baru
         </button>
       </div>
       <div class="fc-user-area" @click.stop>
@@ -124,7 +124,7 @@ watch(() => quizStore.currentSession, (newSession) => {
             <path d="M6 2h12a2 2 0 0 1 2 2v12"/>
           </svg>
         </div>
-        <h2>Buat Smart Flashcards</h2>
+        <h2>Buat Flashcard Pintar</h2>
         <p>Upload dokumen PDF kuliah, dan AI akan membuat kartu-kartu belajar untuk kamu.</p>
 
         <DocumentManager mode="chip" />
@@ -167,7 +167,7 @@ watch(() => quizStore.currentSession, (newSession) => {
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
               </svg>
-              <span>Buat Flashcard</span>
+              <span>Buat Flashcard Pintar</span>
             </span>
           </button>
         </div>
@@ -180,8 +180,8 @@ watch(() => quizStore.currentSession, (newSession) => {
         <div class="fc-prog-left">
           <div class="fc-prog-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div>
           <div class="fc-prog-text">
-            <h2>{{ quizStore.currentSession?.documentFilename || 'Flashcard' }}</h2>
-            <p>Sesi Flashcard • Dibuat AI</p>
+            <h2>{{ quizStore.currentSession?.documentFilename || 'Flashcard Pintar' }}</h2>
+            <p>Sesi Flashcard Pintar • Dibuat AI</p>
           </div>
         </div>
         <div class="fc-prog-right">

@@ -55,7 +55,7 @@ function formatRelativeTime(dateStr) {
 const learningTools = [
   { icon: 'flashcard', iconBg: '#3B82F6', title: 'Flashcard Pintar', description: 'Ubah catatan rumit menjadi kartu memori interaktif menggunakan AI. Cocok untuk menghafal terminologi OS.', tag: 'Dibuat AI', tagColor: '#3B82F6', action: 'Mulai Belajar', route: '/flashcards' },
   { icon: 'voice', iconBg: '#10B981', title: 'Ujian Lisan', description: 'Simulasi ujian lisan dengan AI. Jawab soal secara verbal dan dapatkan evaluasi instan.', tag: 'Web Speech API', tagColor: '#10B981', action: 'Mulai Simulasi', route: '/voice-to-speech' },
-  { icon: 'quiz', iconBg: '#F59E0B', title: 'Kuis Adaptif', description: 'Tes pemahamanmu dengan kuis pilihan ganda yang dihasilkan AI dari dokumen kuliahmu.', tag: 'Didukung AI', tagColor: '#F59E0B', action: 'Ambil Quiz', route: '/quiz-mode' }
+  { icon: 'quiz', iconBg: '#F59E0B', title: 'Kuis Adaptif', description: 'Tes pemahamanmu dengan kuis pilihan ganda yang dihasilkan AI dari dokumen kuliahmu.', tag: 'Didukung AI', tagColor: '#F59E0B', action: 'Ambil Kuis', route: '/quiz-mode' }
 ]
 
 function handleNewChat() { router.push('/chat') }

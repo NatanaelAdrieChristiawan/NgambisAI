@@ -41,19 +41,19 @@ const routes = [
     path: '/flashcards',
     name: 'Flashcards',
     component: () => import('@/views/FlashcardsView.vue'),
-    meta: { requiresAuth: true, title: 'Flashcards' }
+    meta: { requiresAuth: true, title: 'Flashcard Pintar' }
   },
   {
     path: '/quiz-mode',
     name: 'QuizMode',
     component: () => import('@/views/QuizModeView.vue'),
-    meta: { requiresAuth: true, title: 'Quiz Mode' }
+    meta: { requiresAuth: true, title: 'Kuis Adaptif' }
   },
   {
     path: '/voice-to-speech',
     name: 'VoiceToSpeech',
     component: () => import('@/views/VoiceToSpeechView.vue'),
-    meta: { requiresAuth: true, title: 'Voice To Speech' }
+    meta: { requiresAuth: true, title: 'Ujian Lisan' }
   },
   {
     path: '/settings',

@@ -244,7 +244,7 @@ async function startQuiz() {
     showSetup.value = false
     quizFinished.value = false
     loadCurrentQuestionState()
-  } catch (err) { setupError.value = quizStore.error || 'Gagal membuat quiz.' }
+  } catch (err) { setupError.value = quizStore.error || 'Gagal membuat kuis adaptif.' }
 }
 
 function handleNewQuiz() {
@@ -290,7 +290,7 @@ onUnmounted(() => {
         </button>
         <button class="btn-new-quiz" @click="handleNewQuiz">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-          Quiz Baru
+          Kuis Adaptif Baru
         </button>
       </div>
       <div class="qz-user-area" @click.stop>
@@ -314,7 +314,7 @@ onUnmounted(() => {
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
           </svg>
         </div>
-        <h2>Buat Adaptive Quiz</h2>
+        <h2>Buat Kuis Adaptif</h2>
         <p>Upload dokumen PDF dan AI akan membuat soal pilihan ganda.</p>
         <DocumentManager mode="chip" />
         <div class="setup-options">
@@ -416,7 +416,7 @@ onUnmounted(() => {
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
               </svg>
-              <span>Buat Kuis</span>
+              <span>Buat Kuis Adaptif</span>
             </span>
           </button>
         </div>
@@ -435,7 +435,7 @@ onUnmounted(() => {
             <path d="M12 2a5 5 0 0 1 5 5v5a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"/>
           </svg>
         </div>
-        <h2>Quiz Selesai!</h2>
+        <h2>Kuis Selesai!</h2>
         <div class="finished-score">
           {{ normalizedScore }} <span class="pts-text">/ 100 poin</span>
         </div>
@@ -494,7 +494,7 @@ onUnmounted(() => {
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
             </svg>
-            <span>Quiz Baru</span>
+            <span>Kuis Adaptif Baru</span>
           </span>
         </button>
       </div>
@@ -503,7 +503,7 @@ onUnmounted(() => {
     <!-- Active Quiz -->
     <div v-else class="qz-content">
       <div class="qz-session-bar">
-        <div class="session-left"><span class="session-label">SESI AKTIF</span><h2 class="session-title">{{ quizStore.currentSession?.documentFilename || 'Quiz' }}</h2></div>
+        <div class="session-left"><span class="session-label">SESI AKTIF</span><h2 class="session-title">{{ quizStore.currentSession?.documentFilename || 'Kuis Adaptif' }}</h2></div>
         <div class="session-center"><span class="session-progress-pill"><strong>{{ questionNumber }} / {{ totalQuestions }}</strong> Pertanyaan</span></div>
         <div class="session-right"><span class="score-label">SKOR ANDA</span><span class="score-value">{{ formattedScore }} poin</span></div>
       </div>
@@ -524,7 +524,7 @@ onUnmounted(() => {
               <span>Mode Latihan</span>
             </div>
             <div class="qz-category-badge">
-              QUIZ AI • {{ personaType === 'STRICT_LECTURER' ? 'SULIT' : 'MUDAH' }}
+              KUIS AI • {{ personaType === 'STRICT_LECTURER' ? 'SULIT' : 'MUDAH' }}
               <span v-if="timerLimit > 0"> • {{ timerLimit }}S</span>
               <span v-else> • LATIHAN</span>
             </div>

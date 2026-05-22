@@ -26,8 +26,8 @@ const chatStore = useChatStore()
 const menuItems = [
   { name: 'Dashboard', icon: 'dashboard', route: 'Dashboard', theme: '#3B82F6' },
   { name: 'Chat AI', icon: 'chat', route: 'AIChat', theme: '#3B82F6' },
-  { name: 'Flashcard', icon: 'flashcards', route: 'Flashcards', theme: '#3B82F6' },
-  { name: 'Mode Kuis', icon: 'quiz', route: 'QuizMode', theme: '#F59E0B' },
+  { name: 'Flashcard Pintar', icon: 'flashcards', route: 'Flashcards', theme: '#3B82F6' },
+  { name: 'Kuis Adaptif', icon: 'quiz', route: 'QuizMode', theme: '#F59E0B' },
   { name: 'Ujian Lisan', icon: 'voice', route: 'VoiceToSpeech', theme: '#10B981' }
 ]
 
@@ -38,7 +38,7 @@ const flashcardHistory = computed(() => {
     .reverse()
     .map(session => ({
       id: session.id,
-      title: session.title || session.documentFilename || session.document?.filename || 'Sesi Flashcard',
+      title: session.title || session.documentFilename || session.document?.filename || 'Sesi Flashcard Pintar',
       time: formatRelativeTime(session.createdAt),
       pinned: session.pinned || false,
       active: quizStore.currentSession?.id === session.id && route.name === 'Flashcards'
@@ -76,7 +76,7 @@ const quizHistory = computed(() => {
     .reverse()
     .map(session => ({
       id: session.id,
-      title: session.title || session.documentFilename || session.document?.filename || 'Sesi Kuis',
+      title: session.title || session.documentFilename || session.document?.filename || 'Sesi Kuis Adaptif',
       time: formatRelativeTime(session.createdAt),
       pinned: session.pinned || false,
       active: quizStore.currentSession?.id === session.id && route.name === 'QuizMode'
@@ -425,7 +425,7 @@ function onTouchEnd() {
     <!-- Dynamic History -->
     <div class="chat-history" v-if="['AIChat', 'Flashcards', 'VoiceToSpeech', 'QuizMode'].includes(route.name)">
       <template v-if="route.name === 'Flashcards'">
-        <div class="history-label">RIWAYAT FLASHCARD</div>
+        <div class="history-label">RIWAYAT FLASHCARD PINTAR</div>
         <div class="history-list" v-if="flashcardHistory.length > 0">
           <div
             v-for="session in flashcardHistory"
@@ -466,7 +466,7 @@ function onTouchEnd() {
           </div>
         </div>
         <div v-else class="history-empty">
-          <span>Belum ada riwayat flashcard</span>
+          <span>Belum ada riwayat flashcard pintar</span>
         </div>
       </template>
 
@@ -563,7 +563,7 @@ function onTouchEnd() {
       </template>
 
       <template v-else-if="route.name === 'QuizMode'">
-        <div class="history-label">RIWAYAT MODE KUIS</div>
+        <div class="history-label">RIWAYAT KUIS ADAPTIF</div>
         <div class="history-list" v-if="quizHistory.length > 0">
           <div
             v-for="session in quizHistory"
@@ -604,7 +604,7 @@ function onTouchEnd() {
           </div>
         </div>
         <div v-else class="history-empty">
-          <span>Belum ada riwayat quiz</span>
+          <span>Belum ada riwayat kuis adaptif</span>
         </div>
       </template>
     </div>
