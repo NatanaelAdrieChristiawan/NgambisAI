@@ -212,18 +212,60 @@ onUnmounted(() => { stopRecording() })
     <!-- Setup -->
     <div v-if="showSetup" class="vs-setup">
       <div class="setup-card">
-        <div class="setup-icon">🎙️</div>
+        <div class="setup-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" x2="12" y1="19" y2="22"/>
+          </svg>
+        </div>
         <h2>Simulasi Ujian Lisan</h2>
         <p>Jawab pertanyaan secara lisan menggunakan mikrofon. AI akan mengevaluasi jawabanmu secara real-time.</p>
-        <div v-if="!speechSupported" class="setup-warning">⚠️ Browser ini tidak mendukung Speech Recognition. Gunakan Chrome/Edge.</div>
+        <div v-if="!speechSupported" class="setup-warning">
+          <svg class="warning-icon-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span>Browser ini tidak mendukung Speech Recognition. Gunakan Chrome/Edge.</span>
+        </div>
         <DocumentManager mode="chip" />
         <div class="setup-options">
-          <div class="setup-opt"><label>Soal:</label><select v-model="questionCount"><option :value="2">2</option><option :value="3">3</option><option :value="5">5</option></select></div>
-          <div class="setup-opt"><label>Persona:</label><select v-model="personaType"><option value="FRIENDLY_SENIOR">Kakak Senior</option><option value="STRICT_LECTURER">Dosen Tegas</option></select></div>
+          <div class="setup-opt">
+            <label>Jumlah Soal:</label>
+            <select v-model="questionCount">
+              <option :value="2">2</option>
+              <option :value="3">3</option>
+              <option :value="5">5</option>
+            </select>
+          </div>
+          <div class="setup-opt">
+            <label>Persona AI:</label>
+            <select v-model="personaType">
+              <option value="FRIENDLY_SENIOR">Kakak Senior</option>
+              <option value="STRICT_LECTURER">Dosen Tegas</option>
+            </select>
+          </div>
         </div>
         <div v-if="setupError" class="setup-error">{{ setupError }}</div>
         <div class="setup-actions">
-          <button class="btn-generate" @click="startSession" :disabled="quizStore.generating || docStore.selectedDocumentIds.length === 0">{{ quizStore.generating ? '⏳ Menyiapkan soal...' : '🎤 Mulai Simulasi' }}</button>
+          <button class="btn-generate" @click="startSession" :disabled="quizStore.generating || docStore.selectedDocumentIds.length === 0">
+            <span class="btn-icon-content" v-if="quizStore.generating">
+              <svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>Menyiapkan soal...</span>
+            </span>
+            <span class="btn-icon-content" v-else>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" x2="12" y1="19" y2="22"/>
+              </svg>
+              <span>Mulai Simulasi</span>
+            </span>
+          </button>
         </div>
       </div>
     </div>
@@ -231,7 +273,15 @@ onUnmounted(() => { stopRecording() })
     <!-- Finished -->
     <div v-else-if="finished" class="vs-finished">
       <div class="finished-card">
-        <div class="finished-emoji">🏆</div>
+        <div class="finished-emoji">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+            <path d="M4 22h16"/>
+            <path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34"/>
+            <path d="M12 2a5 5 0 0 1 5 5v5a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"/>
+          </svg>
+        </div>
         <h2>Simulasi Selesai!</h2>
         <div class="eval-summary">
           <div v-for="(ev, i) in evaluations" :key="i" class="eval-item">
@@ -240,7 +290,14 @@ onUnmounted(() => { stopRecording() })
           </div>
         </div>
         <div class="avg-score">Rata-rata: <strong :style="{ color: getScoreColor(evaluations.reduce((s,e)=>s+e.score,0)/evaluations.length) }">{{ Math.round(evaluations.reduce((s,e)=>s+e.score,0)/evaluations.length) }}/100</strong></div>
-        <button class="btn-generate" @click="handleNewSession">🔄 Sesi Baru</button>
+        <button class="btn-generate" @click="handleNewSession">
+          <span class="btn-icon-content">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+            <span>Sesi Baru</span>
+          </span>
+        </button>
       </div>
     </div>
 
@@ -258,14 +315,27 @@ onUnmounted(() => { stopRecording() })
           <svg v-if="!isRecording" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
           <svg v-else xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
         </button>
-        <span class="record-label">{{ isRecording ? '🔴 Merekam... klik untuk berhenti' : evaluating ? '⏳ Mengevaluasi...' : 'Klik untuk mulai bicara' }}</span>
+        <span class="record-label">
+          <span v-if="isRecording" class="recording-status">
+            <span class="pulse-dot"></span>
+            <span>Merekam... klik untuk berhenti</span>
+          </span>
+          <span v-else-if="evaluating" class="evaluating-status">
+            <svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Mengevaluasi...</span>
+          </span>
+          <span v-else>Klik untuk mulai bicara</span>
+        </span>
         <div v-if="isRecording" class="wave-bars"><span></span><span></span><span></span><span></span><span></span></div>
       </div>
 
-      <div class="vs-transcript" v-if="transcript || interimTranscript">
-        <label>Transkripsi: <span v-if="!isRecording && !evaluation" class="edit-hint">(Bisa diedit)</span></label>
-        <p v-if="isRecording || evaluation">{{ transcript }}<span class="interim" v-if="isRecording">{{ interimTranscript }}</span></p>
-        <textarea v-else v-model="transcript" class="transcript-editor" rows="3"></textarea>
+      <div class="vs-transcript">
+        <label>Jawaban Kamu: <span v-if="!isRecording && !evaluation" class="edit-hint">(Bisa diketik/diedit secara manual)</span></label>
+        <p v-if="isRecording || evaluation">{{ transcript || '(Belum ada rekaman suara...)' }}<span class="interim" v-if="isRecording">{{ interimTranscript }}</span></p>
+        <textarea v-else v-model="transcript" class="transcript-editor" placeholder="Ketik jawaban kamu di sini atau klik tombol mikrofon di atas untuk berbicara..." rows="4"></textarea>
       </div>
 
       <div v-if="evalError" class="vs-error">{{ evalError }}</div>
@@ -279,8 +349,35 @@ onUnmounted(() => { stopRecording() })
       </div>
 
       <div class="vs-actions">
-        <button v-if="!evaluation && !isRecording" class="btn-submit" @click="submitAnswer" :disabled="!transcript.trim() || evaluating">{{ evaluating ? 'Mengevaluasi...' : '📤 Kirim Jawaban' }}</button>
-        <button v-if="evaluation" class="btn-generate" @click="nextQuestion">{{ currentQIndex >= totalQuestions-1 ? '🏁 Selesai' : '➡️ Soal Berikutnya' }}</button>
+        <button v-if="!evaluation && !isRecording" class="btn-submit" @click="submitAnswer" :disabled="!transcript.trim() || evaluating">
+          <span class="btn-icon-content" v-if="evaluating">
+            <svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Mengevaluasi...</span>
+          </span>
+          <span class="btn-icon-content" v-else>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+            <span>Kirim Jawaban</span>
+          </span>
+        </button>
+        <button v-if="evaluation" class="btn-generate" @click="nextQuestion">
+          <span class="btn-icon-content" v-if="currentQIndex >= totalQuestions-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
+            </svg>
+            <span>Selesai</span>
+          </span>
+          <span class="btn-icon-content" v-else>
+            <span>Soal Berikutnya</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+            </svg>
+          </span>
+        </button>
       </div>
     </div>
   </div>
@@ -301,15 +398,29 @@ onUnmounted(() => { stopRecording() })
 /* Shared setup styles */
 .vs-setup,.vs-finished { flex:1; display:flex; align-items:center; justify-content:center; padding:2rem; }
 .setup-card,.finished-card { background:#fff; border:1px solid #E2E8F0; border-radius:20px; padding:3rem; max-width:520px; width:100%; text-align:center; box-shadow:0 10px 40px rgba(0,0,0,.04); }
-.setup-icon,.finished-emoji { font-size:3rem; margin-bottom:1rem; } .setup-card h2,.finished-card h2 { font-size:1.5rem; font-weight:800; margin-bottom:.5rem; }
+.setup-icon,.finished-emoji { font-size:3rem; margin-bottom:1rem; display: flex; justify-content: center; align-items: center; color: #3B82F6; } .setup-card h2,.finished-card h2 { font-size:1.5rem; font-weight:800; margin-bottom:.5rem; }
+
+.warning-icon-svg { flex-shrink: 0; color: #D97706; }
+.setup-warning { display: flex; align-items: center; gap: 0.5rem; text-align: left; }
+.btn-icon-content { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
+.recording-status, .evaluating-status { display: inline-flex; align-items: center; gap: 0.5rem; }
+.pulse-dot { width: 8px; height: 8px; background-color: #EF4444; border-radius: 50%; display: inline-block; animation: pulse-dot-anim 1.5s infinite; }
+@keyframes pulse-dot-anim { 0% { transform: scale(0.9); opacity: 0.6; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.9); opacity: 0.6; } }
+.animate-spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
 .setup-card > p { color:#64748B; font-size:.9375rem; margin-bottom:1.5rem; line-height:1.6; }
 .setup-warning { padding:.75rem; background:#FEF3C7; color:#92400E; border-radius:8px; font-size:.8125rem; margin-bottom:1rem; }
 .setup-docs { text-align:left; margin-bottom:1.25rem; } .setup-label { display:block; font-size:.8125rem; font-weight:700; color:#475569; margin-bottom:.5rem; }
 .doc-list-mini { display:flex; flex-wrap:wrap; gap:.5rem; }
 .doc-chip { display:inline-flex; align-items:center; gap:.375rem; padding:.5rem .75rem; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; font-size:.8125rem; cursor:pointer; } .doc-chip.selected { border-color:#3B82F6; background:#EFF6FF; } .doc-chip input { display:none; }
-.setup-options { display:flex; gap:1rem; justify-content:center; margin-bottom:1.25rem; flex-wrap:wrap; }
-.setup-opt { display:flex; align-items:center; gap:.5rem; } .setup-opt label { font-size:.875rem; font-weight:600; color:#475569; }
-.setup-opt select { padding:.5rem .75rem; border:1px solid #E2E8F0; border-radius:8px; font-size:.875rem; background:#fff; }
+.setup-options { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-top:1.75rem; margin-bottom:2rem; text-align:left; width:100%; }
+.setup-opt { display:flex; flex-direction:column; align-items:stretch; gap:0.5rem; }
+.setup-opt label { font-size:0.8125rem; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.05em; }
+.setup-opt select { padding:0.75rem 1rem; border:1.5px solid #E2E8F0; border-radius:12px; font-size:0.9375rem; font-weight:500; color:#1E293B; background-color:#FFF; transition:border-color 0.2s, box-shadow 0.2s; }
+.setup-opt select { padding-right:2.25rem; background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position:right 0.75rem center; background-size:1.25rem; background-repeat:no-repeat; appearance:none; cursor:pointer; }
+.setup-opt select:hover { border-color:#CBD5E1; }
+.setup-opt select:focus { outline:none; border-color:#3B82F6; box-shadow:0 0 0 3px rgba(59, 130, 246, 0.15); }
 .setup-error { padding:.625rem; background:#FEF2F2; color:#DC2626; border-radius:8px; font-size:.8125rem; margin-bottom:1rem; }
 .setup-actions { display:flex; gap:.75rem; justify-content:center; flex-wrap:wrap; }
 .btn-upload-setup { padding:.75rem 1.25rem; background:#F1F5F9; color:#475569; border:1px solid #E2E8F0; border-radius:10px; font-size:.875rem; font-weight:600; cursor:pointer; } .btn-upload-setup:disabled { opacity:.5; }
