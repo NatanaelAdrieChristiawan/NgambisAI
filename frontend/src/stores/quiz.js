@@ -10,6 +10,29 @@ import { ref, computed } from 'vue'
 import quizApi from '@/services/quiz.api'
 import { useAuthStore } from './auth'
 
+function deterministicShuffle(array, seedString) {
+  if (!array || !Array.isArray(array)) return []
+  if (!seedString) return [...array]
+  
+  let seed = 0
+  for (let i = 0; i < seedString.length; i++) {
+    seed = (seed << 5) - seed + seedString.charCodeAt(i)
+    seed |= 0 // Convert to 32bit integer
+  }
+  
+  function random() {
+    let x = Math.sin(seed++) * 10000
+    return x - Math.floor(x)
+  }
+
+  const shuffled = [...array]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
+
 export const useQuizStore = defineStore('quiz', () => {
   // ===== State =====
   const sessions = ref([])
@@ -74,7 +97,8 @@ export const useQuizStore = defineStore('quiz', () => {
         // Parse MC options from JSON string
         if (item.itemType === 'MULTIPLE_CHOICE' && item.options) {
           try {
-            mapped.options = JSON.parse(item.options)
+            const parsed = JSON.parse(item.options)
+            mapped.options = deterministicShuffle(parsed, item.id)
           } catch {
             mapped.options = [item.options]
           }
@@ -136,7 +160,10 @@ export const useQuizStore = defineStore('quiz', () => {
           referenceText: item.referenceText
         }
         if (item.itemType === 'MULTIPLE_CHOICE' && item.options) {
-          try { mapped.options = JSON.parse(item.options) } catch { mapped.options = [] }
+          try {
+            const parsed = JSON.parse(item.options)
+            mapped.options = deterministicShuffle(parsed, item.id)
+          } catch { mapped.options = [] }
           mapped.correctAnswer = item.correctAnswer
         }
         return mapped
