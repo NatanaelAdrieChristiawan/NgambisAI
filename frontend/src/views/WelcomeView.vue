@@ -54,7 +54,9 @@ function scrollToFeatures() {
       <div class="hero-bg-gradient"></div>
       <div class="hero-container">
         <div class="hero-badge">
-          <span class="badge-icon">✨</span>
+          <svg class="badge-icon-svg" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+          </svg>
           <span>AI-POWERED LEARNING</span>
         </div>
         <h1 class="hero-title">
@@ -311,8 +313,8 @@ function scrollToFeatures() {
   margin-bottom: 1.5rem;
 }
 
-.badge-icon {
-  font-size: 0.8125rem;
+.badge-icon-svg {
+  flex-shrink: 0;
 }
 
 .hero-title {
