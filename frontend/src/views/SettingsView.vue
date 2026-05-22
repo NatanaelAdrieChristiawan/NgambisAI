@@ -67,7 +67,13 @@ onMounted(() => { loadProfile() })
         <button class="burger-btn" @click.stop="toggleSidebar" aria-label="Menu">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
-        <h1 class="st-title">⚙️ Settings</h1>
+        <h1 class="st-title">
+          <svg class="st-title-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          Settings
+        </h1>
       </div>
     </header>
 
@@ -105,11 +111,37 @@ onMounted(() => { loadProfile() })
           <span class="form-hint">Email tidak dapat diubah.</span>
         </div>
 
-        <div v-if="saveSuccess" class="form-success">✅ Profil berhasil disimpan!</div>
-        <div v-if="saveError" class="form-error">⚠️ {{ saveError }}</div>
+        <div v-if="saveSuccess" class="form-success">
+          <svg class="success-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          <span>Profil berhasil disimpan!</span>
+        </div>
+        <div v-if="saveError" class="form-error">
+          <svg class="error-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <span>{{ saveError }}</span>
+        </div>
 
         <div class="form-actions">
-          <button class="btn-save" @click="saveProfile" :disabled="saving">{{ saving ? 'Menyimpan...' : '💾 Simpan Perubahan' }}</button>
+          <button class="btn-save" @click="saveProfile" :disabled="saving">
+            <template v-if="saving">
+              <div class="save-spinner"></div>
+              <span>Menyimpan...</span>
+            </template>
+            <template v-else>
+              <svg class="save-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              <span>Simpan Perubahan</span>
+            </template>
+          </button>
         </div>
       </div>
 
@@ -140,7 +172,8 @@ onMounted(() => { loadProfile() })
 .st-page { min-height:100vh; background:#F8FAFC; }
 .st-header { display:flex; align-items:center; padding:1rem 2rem; background:#FFF; border-bottom:1px solid #E2E8F0; }
 .st-header-left { display:flex; align-items:center; gap:.75rem; }
-.st-title { font-size:1.125rem; font-weight:700; color:#0F172A; }
+.st-title { font-size:1.125rem; font-weight:700; color:#0F172A; display: inline-flex; align-items: center; gap: 0.5rem; }
+.st-title-icon { color: #64748B; flex-shrink: 0; }
 
 .st-content { max-width:640px; margin:0 auto; padding:2rem; display:flex; flex-direction:column; gap:1.5rem; }
 .st-card { background:#fff; border:1px solid #E2E8F0; border-radius:16px; padding:2rem; box-shadow:0 2px 12px rgba(0,0,0,.03); }
@@ -164,11 +197,15 @@ onMounted(() => { loadProfile() })
 .form-input:focus { border-color:#3B82F6; box-shadow:0 0 0 3px rgba(59,130,246,.1); background:#fff; }
 .form-input.disabled { background:#F1F5F9; color:#94A3B8; cursor:not-allowed; }
 .form-hint { font-size:.6875rem; color:#94A3B8; margin-top:.375rem; display:block; }
-.form-success { padding:.75rem; background:#ECFDF5; color:#065F46; border-radius:8px; font-size:.8125rem; font-weight:600; margin-bottom:1rem; }
-.form-error { padding:.75rem; background:#FEF2F2; color:#DC2626; border-radius:8px; font-size:.8125rem; margin-bottom:1rem; }
+.form-success { display: flex; align-items: center; gap: 0.5rem; padding:.75rem; background:#ECFDF5; color:#065F46; border-radius:8px; font-size:.8125rem; font-weight:600; margin-bottom:1rem; }
+.success-icon { color: #10B981; flex-shrink: 0; }
+.form-error { display: flex; align-items: center; gap: 0.5rem; padding:.75rem; background:#FEF2F2; color:#DC2626; border-radius:8px; font-size:.8125rem; margin-bottom:1rem; }
+.error-icon { color: #EF4444; flex-shrink: 0; }
 .form-actions { display:flex; justify-content:flex-end; }
-.btn-save { padding:.75rem 1.5rem; background:#3B82F6; color:#fff; border:none; border-radius:10px; font-size:.875rem; font-weight:600; cursor:pointer; transition:all .2s; box-shadow:0 4px 12px rgba(59,130,246,.25); }
+.btn-save { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding:.75rem 1.5rem; background:#3B82F6; color:#fff; border:none; border-radius:10px; font-size:.875rem; font-weight:600; cursor:pointer; transition:all .2s; box-shadow:0 4px 12px rgba(59,130,246,.25); }
 .btn-save:hover { background:#2563EB; } .btn-save:disabled { opacity:.5; cursor:default; }
+.save-icon { flex-shrink: 0; }
+.save-spinner { width: 14px; height: 14px; border: 2px solid rgba(255, 255, 255, 0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
 
 /* Loading */
 .loading-state { display:flex; align-items:center; justify-content:center; gap:1rem; padding:2rem; color:#94A3B8; font-size:.875rem; }
