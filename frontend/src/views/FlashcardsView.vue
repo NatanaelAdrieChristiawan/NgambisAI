@@ -270,7 +270,7 @@ watch(() => quizStore.currentSession, (newSession) => {
 .doc-chip.selected { border-color:#3B82F6; background:#EFF6FF; color:#2563EB; }
 .doc-chip input { display:none; }
 /* Card Count Selector */
-.setup-count-section { margin-bottom:1.5rem; }
+.setup-count-section { margin-top: 1.75rem; margin-bottom:1.5rem; }
 .count-label { display:flex; align-items:center; justify-content:center; gap:.5rem; margin-bottom:1rem; }
 .count-label span { font-size:.875rem; font-weight:700; color:#475569; letter-spacing:.01em; }
 .count-options { display:flex; gap:.75rem; justify-content:center; flex-wrap:wrap; }
