@@ -118,7 +118,12 @@ watch(() => quizStore.currentSession, (newSession) => {
     <!-- Setup Modal -->
     <div v-if="showSetup" class="fc-setup">
       <div class="setup-card">
-        <div class="setup-icon">🃏</div>
+        <div class="setup-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="12" height="16" x="2" y="6" rx="2"/>
+            <path d="M6 2h12a2 2 0 0 1 2 2v12"/>
+          </svg>
+        </div>
         <h2>Buat Smart Flashcards</h2>
         <p>Upload dokumen PDF kuliah, dan AI akan membuat kartu-kartu belajar untuk kamu.</p>
 
@@ -151,7 +156,19 @@ watch(() => quizStore.currentSession, (newSession) => {
 
         <div class="setup-actions">
           <button class="btn-generate" @click="startFlashcards" :disabled="isGenerating || docStore.selectedDocumentIds.length === 0">
-            {{ isGenerating ? '⏳ AI sedang membuat kartu...' : '✨ Generate Flashcards' }}
+            <span class="btn-icon-content" v-if="isGenerating">
+              <svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>AI sedang membuat kartu...</span>
+            </span>
+            <span class="btn-icon-content" v-else>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+              </svg>
+              <span>Generate Flashcards</span>
+            </span>
           </button>
         </div>
       </div>
@@ -238,8 +255,13 @@ watch(() => quizStore.currentSession, (newSession) => {
 /* Setup */
 .fc-setup { flex:1; display:flex; align-items:center; justify-content:center; padding:2rem; }
 .setup-card { background:#fff; border:1px solid #E2E8F0; border-radius:20px; padding:3rem; max-width:520px; width:100%; text-align:center; box-shadow:0 10px 40px rgba(0,0,0,.04); }
-.setup-icon { font-size:3rem; margin-bottom:1rem; }
+.setup-icon { font-size:3rem; margin-bottom:1rem; display: flex; justify-content: center; align-items: center; color: #3B82F6; }
 .setup-card h2 { font-size:1.5rem; font-weight:800; color:#0F172A; margin-bottom:.5rem; }
+
+.btn-icon-content { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
+.animate-spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
 .setup-card > p { color:#64748B; font-size:.9375rem; margin-bottom:1.5rem; line-height:1.6; }
 .setup-docs { text-align:left; margin-bottom:1.25rem; }
 .setup-label { display:block; font-size:.8125rem; font-weight:700; color:#475569; margin-bottom:.5rem; }
