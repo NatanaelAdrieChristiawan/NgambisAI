@@ -478,7 +478,7 @@ onUnmounted(() => clearInterval(timerInterval))
 .doc-chip.selected { border-color:#3B82F6; background:#EFF6FF; } .doc-chip input { display:none; }
 .setup-options { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-top:1.75rem; margin-bottom:2rem; text-align:left; width:100%; }
 .setup-opt { display:flex; flex-direction:column; align-items:stretch; gap:0.5rem; }
-.setup-opt label { font-size:0.8125rem; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.05em; }
+.setup-opt label { font-size:0.8125rem; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.05em; line-height: 1.2; }
 .setup-opt select, .setup-opt input[type="number"] { padding:0.75rem 1rem; border:1.5px solid #E2E8F0; border-radius:12px; font-size:0.9375rem; font-weight:500; color:#1E293B; background-color:#FFF; transition:border-color 0.2s, box-shadow 0.2s; }
 .setup-opt select { padding-right:2.25rem; background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position:right 0.75rem center; background-size:1.25rem; background-repeat:no-repeat; appearance:none; cursor:pointer; }
 .setup-opt select:hover, .setup-opt input[type="number"]:hover { border-color:#CBD5E1; }
@@ -583,5 +583,6 @@ onUnmounted(() => clearInterval(timerInterval))
   .qz-option { padding:1.25rem; font-size:1rem; }
   .timer-circle { width:44px; height:44px; top:1rem; left:1rem; }
   .setup-card { padding:2rem 1.5rem; }
+  .setup-opt label { min-height: 2.25rem; display: flex; align-items: flex-end; }
 }
 </style>
