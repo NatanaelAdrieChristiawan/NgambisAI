@@ -55,9 +55,12 @@ provide('isMobile', isMobile)
 
 // Show sidebar only on authenticated pages (not on login/register/callback)
 const showSidebar = computed(() => {
-  const noSidebarRoutes = ['Welcome', 'Dashboard', 'Login', 'Register', 'OAuth2Callback', 'NotFound']
+  const noSidebarRoutes = ['Welcome', 'Login', 'Register', 'OAuth2Callback', 'NotFound']
   return authStore.isAuthenticated && !noSidebarRoutes.includes(route.name)
 })
+
+// Dashboard shows sidebar only on mobile (burger menu), hidden on desktop
+const sidebarMobileOnly = computed(() => route.name === 'Dashboard')
 
 function handleAuthenticated() {
   authStore.closeAuthModal()
@@ -65,7 +68,7 @@ function handleAuthenticated() {
 </script>
 
 <template>
-  <div class="app-layout" :class="{ 'with-sidebar': showSidebar }">
+  <div class="app-layout" :class="{ 'with-sidebar': showSidebar, 'sidebar-mobile-only': sidebarMobileOnly && showSidebar }">
     <!-- Sidebar Backdrop (mobile overlay) -->
     <div
       v-if="showSidebar && isMobile"
@@ -118,6 +121,18 @@ function handleAuthenticated() {
 
 @media (max-width: 768px) {
   .app-layout.with-sidebar .main-content {
+    margin-left: 0;
+  }
+}
+
+/* Dashboard: hide sidebar on desktop, keep it available for mobile burger */
+@media (min-width: 769px) {
+  .app-layout.sidebar-mobile-only :deep(.sidebar) {
+    transform: translateX(-100%);
+    pointer-events: none;
+  }
+
+  .app-layout.sidebar-mobile-only .main-content {
     margin-left: 0;
   }
 }
