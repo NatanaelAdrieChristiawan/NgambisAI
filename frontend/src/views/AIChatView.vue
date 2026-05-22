@@ -540,7 +540,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.chat-page { display:flex; flex-direction:column; height:100vh; background:#F8FAFC; color:#1E293B; position:relative; }
+.chat-page { display:flex; flex-direction:column; height:100vh; height:100dvh; width:100%; max-width:100%; background:#F8FAFC; color:#1E293B; position:relative; overflow:hidden; }
 
 /* Drag & Drop Overlay */
 .drop-overlay { position:fixed; inset:0; z-index:999; background:rgba(59,130,246,.08); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; pointer-events:none; }
@@ -562,7 +562,7 @@ onBeforeUnmount(() => {
 .slide-down-enter-active, .slide-down-leave-active { transition:all .3s ease; }
 .slide-down-enter-from, .slide-down-leave-to { opacity:0; transform:translateX(-50%) translateY(-1rem); }
 
-.chat-header { display:flex; align-items:center; justify-content:space-between; padding:0.75rem 1.5rem; background:#fff; border-bottom:1px solid #E2E8F0; flex-shrink:0; z-index:10; gap:0.75rem; }
+.chat-header { display:flex; align-items:center; justify-content:space-between; padding:0.75rem 1.5rem; background:#fff; border-bottom:1px solid #E2E8F0; flex-shrink:0; position:sticky; top:0; z-index:100; gap:0.75rem; }
 .chat-header-left { display:flex; align-items:center; gap:0.75rem; }
 .btn-new-chat { display:inline-flex; align-items:center; gap:0.5rem; padding:0.625rem 1.25rem; background:#3B82F6; color:#fff; border:none; border-radius:10px; font-size:0.875rem; font-weight:600; cursor:pointer; transition:all .25s; box-shadow:0 2px 8px rgba(59,130,246,.25); }
 .btn-new-chat:hover { background:#2563EB; }
@@ -593,19 +593,19 @@ onBeforeUnmount(() => {
 .file-card-type { display:block; font-size:.6875rem; color:#94A3B8; margin-top:1px; }
 
 /* Chat Messages */
-.chat-messages { flex:1; overflow-y:auto; padding:1.5rem 0; }
-.messages-inner { max-width:780px; margin:0 auto; padding:0 1.5rem; display:flex; flex-direction:column; gap:1.75rem; }
+.chat-messages { flex:1; overflow-y:auto; padding:1.5rem 0; width:100%; max-width:100%; }
+.messages-inner { max-width:780px; width:100%; margin:0 auto; padding:0 1.5rem; display:flex; flex-direction:column; gap:1.75rem; }
 .msg-row { display:flex; animation:msgIn .4s cubic-bezier(.16,1,.3,1); }
 @keyframes msgIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
 .msg-row.user { justify-content:flex-end; }
-.bubble-user { max-width:70%; padding:.875rem 1.25rem; background:linear-gradient(135deg,#3B82F6,#2563EB); color:#fff; border-radius:18px 18px 4px 18px; font-size:.9375rem; line-height:1.6; box-shadow:0 4px 12px rgba(59,130,246,.25); }
+.bubble-user { max-width:70%; padding:.875rem 1.25rem; background:linear-gradient(135deg,#3B82F6,#2563EB); color:#fff; border-radius:18px 18px 4px 18px; font-size:.9375rem; line-height:1.6; box-shadow:0 4px 12px rgba(59,130,246,.25); word-break: break-word; overflow-wrap: anywhere; }
 .ai-wrap { display:flex; gap:.75rem; max-width:90%; }
 .ai-ava { flex-shrink:0; width:40px; height:40px; padding-top:2px; }
 .ai-body { flex:1; min-width:0; }
 .ai-header { display:flex; align-items:center; gap:.5rem; margin-bottom:.5rem; }
 .ai-src-lbl { font-size:.6875rem; font-weight:700; background:linear-gradient(135deg,#3B82F6,#8B5CF6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:.06em; }
-.ai-card { background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:1.125rem 1.25rem; box-shadow:0 1px 4px rgba(0,0,0,.04); }
-.ai-content { font-size:.9375rem; color:#334155; line-height:1.8; }
+.ai-card { background:#fff; border:1px solid #E2E8F0; border-radius:12px; padding:1.125rem 1.25rem; box-shadow:0 1px 4px rgba(0,0,0,.04); max-width:100%; box-sizing:border-box; }
+.ai-content { font-size:.9375rem; color:#334155; line-height:1.8; word-break: break-word; overflow-wrap: anywhere; }
 .ai-content.is-typing::after { content:''; display:inline-block; width:2px; height:1em; background:#3B82F6; margin-left:2px; vertical-align:text-bottom; animation:blink-cursor .6s steps(2) infinite; }
 @keyframes blink-cursor { 0%{opacity:1} 100%{opacity:0} }
 .ai-content :deep(strong) { color:#0F172A; font-weight:700; }
@@ -634,7 +634,7 @@ onBeforeUnmount(() => {
 .ai-content :deep(.md-h4) { font-size:.95rem; font-weight:700; color:#1E293B; padding-left:.625rem; border-left:3px solid #3B82F6; }
 .ai-content :deep(.md-hr) { border:none; height:1px; background:linear-gradient(90deg,#E2E8F0,#DBEAFE,#E2E8F0); margin:1.25rem 0; }
 .ai-content :deep(.ai-code) { background:#0F172A; color:#E2E8F0; border:none; border-radius:10px; padding:1rem 1.25rem; overflow-x:auto; font-size:.8125rem; font-family:'Fira Code',monospace; }
-.ai-content :deep(.ai-inline-code) { background:#EFF6FF; padding:.15rem .4rem; border-radius:5px; font-size:.85em; color:#1D4ED8; font-weight:600; border:1px solid #BFDBFE; }
+.ai-content :deep(.ai-inline-code) { background:#EFF6FF; padding:.15rem .4rem; border-radius:5px; font-size:.85em; color:#1D4ED8; font-weight:600; border:1px solid #BFDBFE; word-break: break-all; overflow-wrap: anywhere; white-space: pre-wrap; display: inline-block; max-width: 100%; vertical-align: middle; }
 
 /* Typing indicator */
 .typing { display:flex; gap:4px; padding:.75rem 0; }
@@ -721,5 +721,22 @@ onBeforeUnmount(() => {
 .btn-confirm-doc:hover { background:#2563EB; }
 .btn-confirm-doc:disabled { opacity:.5; cursor:default; }
 
-@media(max-width:768px) { .messages-inner{padding:0 1rem} .chat-header{padding:.75rem 1rem} .chat-input-area{padding:.75rem 1rem 1rem} .bubble-user{max-width:85%} .ai-wrap{max-width:95%} .doc-picker{margin:0 .5rem;padding:1.5rem} .ai-card{padding:.875rem 1rem} .file-card{min-width:160px;max-width:100%} }
+@media(max-width:768px) {
+  .chat-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: auto;
+  }
+  .messages-inner{padding:0 1rem}
+  .chat-header{padding:.75rem 1rem}
+  .chat-input-area{padding:.75rem 1rem 1rem}
+  .bubble-user{max-width:85%}
+  .ai-wrap{max-width:95%}
+  .doc-picker{margin:0 .5rem;padding:1.5rem}
+  .ai-card{padding:.875rem 1rem}
+  .file-card{min-width:160px;max-width:100%}
+}
 </style>

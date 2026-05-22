@@ -105,12 +105,14 @@ function handleAuthenticated() {
 .app-layout {
   display: flex;
   min-height: 100vh;
+  max-width: 100%;
 }
 
 .main-content {
   flex: 1;
   min-height: 100vh;
   overflow-x: hidden;
+  min-width: 0;
 }
 
 .app-layout.with-sidebar .main-content {
