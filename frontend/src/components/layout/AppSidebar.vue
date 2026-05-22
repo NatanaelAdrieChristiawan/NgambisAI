@@ -939,6 +939,13 @@ function onTouchEnd() {
   opacity: 1;
 }
 
+/* On touch/mobile: always show the three-dot button since there's no hover */
+@media (max-width: 768px) {
+  .options-btn {
+    opacity: 1;
+  }
+}
+
 .options-btn:hover {
   background: #E2E8F0;
   color: #475569;
