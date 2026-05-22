@@ -367,7 +367,12 @@ onBeforeUnmount(() => {
     </Transition>
     <Transition name="slide-down">
       <div v-if="dropUploadError" class="drop-notification error" @click="dropUploadError = null">
-        <span>⚠️ {{ dropUploadError }}</span>
+        <svg class="warning-icon-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <span>{{ dropUploadError }}</span>
         <span class="dismiss">✕</span>
       </div>
     </Transition>
@@ -438,9 +443,15 @@ onBeforeUnmount(() => {
           <div class="empty-icon">
             <img src="/logo/ngambis.png" alt="Ngambis.AI" width="48" height="48" style="border-radius:14px;"/>
           </div>
-          <h2>Halo! Saya Ngambis AI 👋</h2>
+          <h2>Halo! Saya Ngambis AI</h2>
           <p>Upload dokumen kuliah lalu tanyakan apapun. Saya akan membantu memahami materi.</p>
-          <button class="btn-pick-doc" @click="showDocPicker = true">📄 Pilih Dokumen & Mulai</button>
+          <button class="btn-pick-doc btn-has-icon" @click="showDocPicker = true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <span>Pilih Dokumen & Mulai</span>
+          </button>
         </div>
 
         <div v-for="msg in messages" :key="msg.id" class="msg-row" :class="msg.type">
@@ -471,7 +482,13 @@ onBeforeUnmount(() => {
 
     <!-- Error banner -->
     <div v-if="sendError" class="chat-error" @click="sendError = null">
-      ⚠️ {{ sendError }} <span class="dismiss">✕</span>
+      <svg class="warning-icon-svg" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      <span>{{ sendError }}</span>
+      <span class="dismiss">✕</span>
     </div>
 
     <div class="chat-input-area">
@@ -640,6 +657,8 @@ onBeforeUnmount(() => {
 
 /* Error banner */
 .chat-error { padding:.625rem 1.5rem; background:#FEF2F2; color:#DC2626; font-size:.8125rem; text-align:center; cursor:pointer; border-top:1px solid #FECACA; display:flex; align-items:center; justify-content:center; gap:.5rem; }
+.warning-icon-svg { flex-shrink: 0; color: #DC2626; }
+.btn-has-icon { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
 .dismiss { font-weight:700; }
 
 /* Input area */
