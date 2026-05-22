@@ -542,6 +542,11 @@ function scrollToFeatures() {
 }
 
 @media (max-width: 600px) {
+  /* Hide separate Login link on mobile — Get Started opens auth modal with both tabs */
+  .btn-nav-login {
+    display: none;
+  }
+
   .hero-section {
     padding: 3rem 1rem 2.5rem;
   }
