@@ -19,7 +19,9 @@ onMounted(async () => {
 })
 
 function goToLogin() {
-  router.push({ name: 'Login' })
+  router.push({ name: 'Welcome' }).then(() => {
+    authStore.requestAuth('Silakan masuk kembali.')
+  })
 }
 </script>
 

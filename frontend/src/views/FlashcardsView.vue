@@ -240,8 +240,8 @@ watch(() => quizStore.currentSession, (newSession) => {
 .fc-page { min-height:100vh; background:#F8FAFC; color:#1E293B; display:flex; flex-direction:column; }
 .fc-header { display:flex; align-items:center; justify-content:space-between; padding:1rem 2rem; background:#FFF; border-bottom:1px solid #E2E8F0; }
 .fc-header-left { display:flex; align-items:center; gap:.75rem; }
-.btn-new { display:inline-flex; align-items:center; gap:.5rem; background:#0052CC; color:#FFF; padding:.625rem 1rem; border-radius:8px; font-size:.875rem; font-weight:600; border:none; cursor:pointer; transition:all .2s; }
-.btn-new:hover { background:#0043A6; }
+.btn-new { display:inline-flex; align-items:center; gap:.5rem; background:#6A42C2; color:#FFF; padding:.625rem 1rem; border-radius:8px; font-size:.875rem; font-weight:600; border:none; cursor:pointer; transition:all .2s; }
+.btn-new:hover { background:#5832A8; }
 .fc-user-area { position:relative; }
 .fc-avatar-btn { display:flex; align-items:center; gap:.5rem; background:none; border:none; cursor:pointer; padding:4px; border-radius:10px; transition:background .2s; }
 .fc-avatar-btn:hover { background:#F1F5F9; }

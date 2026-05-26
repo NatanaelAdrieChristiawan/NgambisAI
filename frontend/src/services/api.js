@@ -79,7 +79,9 @@ api.interceptors.response.use(
         isRefreshing = false
         const authStore = useAuthStore()
         authStore.logout()
-        router.push({ name: 'Login' })
+        setTimeout(() => {
+          authStore.requestAuth('Sesi Anda telah berakhir. Silakan masuk kembali.')
+        }, 100)
         return Promise.reject(error)
       }
 
@@ -100,7 +102,9 @@ api.interceptors.response.use(
         processQueue(refreshError, null)
         const authStore = useAuthStore()
         authStore.logout()
-        router.push({ name: 'Login' })
+        setTimeout(() => {
+          authStore.requestAuth('Sesi Anda telah berakhir. Silakan masuk kembali.')
+        }, 100)
         return Promise.reject(refreshError)
       } finally {
         isRefreshing = false

@@ -104,9 +104,9 @@ router.beforeEach((to, from, next) => {
     }, 100)
   } else if (
     isAuthenticated &&
-    (to.name === 'Welcome' || to.name === 'Login' || to.name === 'Register')
+    to.name === 'Welcome'
   ) {
-    // Already logged in trying to visit welcome/login/register → redirect to dashboard
+    // Already logged in trying to visit welcome → redirect to dashboard
     next({ name: 'Dashboard' })
   } else {
     next()

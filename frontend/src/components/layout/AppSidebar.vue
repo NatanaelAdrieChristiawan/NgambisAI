@@ -26,7 +26,7 @@ const chatStore = useChatStore()
 const menuItems = [
   { name: 'Dashboard', icon: 'dashboard', route: 'Dashboard', theme: '#3B82F6' },
   { name: 'Chat AI', icon: 'chat', route: 'AIChat', theme: '#3B82F6' },
-  { name: 'Flashcard Pintar', icon: 'flashcards', route: 'Flashcards', theme: '#3B82F6' },
+  { name: 'Flashcard Pintar', icon: 'flashcards', route: 'Flashcards', theme: '#6A42C2' },
   { name: 'Kuis Adaptif', icon: 'quiz', route: 'QuizMode', theme: '#F59E0B' },
   { name: 'Ujian Lisan', icon: 'voice', route: 'VoiceToSpeech', theme: '#10B981' }
 ]

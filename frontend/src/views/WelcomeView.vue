@@ -61,7 +61,7 @@ function scrollToFeatures() {
         </div>
         <h1 class="hero-title">
           Belajar Lebih Cerdas dengan<br/>
-          <span class="hero-accent">Ngambis.ai</span>
+          <span class="hero-accent">NGAMBIS.AI</span>
         </h1>
         <p class="hero-subtitle">
           Tingkatkan efisiensi belajarmu. Upload materi PDF, dan biarkan AI kami

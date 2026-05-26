@@ -55,7 +55,7 @@ provide('isMobile', isMobile)
 
 // Show sidebar only on authenticated pages (not on login/register/callback)
 const showSidebar = computed(() => {
-  const noSidebarRoutes = ['Welcome', 'Login', 'Register', 'OAuth2Callback', 'NotFound']
+  const noSidebarRoutes = ['Welcome', 'OAuth2Callback', 'NotFound']
   return authStore.isAuthenticated && !noSidebarRoutes.includes(route.name)
 })
 

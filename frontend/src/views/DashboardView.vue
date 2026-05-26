@@ -53,7 +53,7 @@ function formatRelativeTime(dateStr) {
 }
 
 const learningTools = [
-  { icon: 'flashcard', iconBg: '#3B82F6', title: 'Flashcard Pintar', description: 'Ubah catatan rumit menjadi kartu memori interaktif menggunakan AI. Cocok untuk menghafal terminologi OS.', tag: 'Dibuat AI', tagColor: '#3B82F6', action: 'Mulai Belajar', route: '/flashcards' },
+  { icon: 'flashcard', iconBg: '#6A42C2', title: 'Flashcard Pintar', description: 'Ubah catatan rumit menjadi kartu memori interaktif menggunakan AI. Cocok untuk menghafal terminologi OS.', tag: 'Dibuat AI', tagColor: '#6A42C2', action: 'Mulai Belajar', route: '/flashcards' },
   { icon: 'voice', iconBg: '#10B981', title: 'Ujian Lisan', description: 'Simulasi ujian lisan dengan AI. Jawab soal secara verbal dan dapatkan evaluasi instan.', tag: 'Web Speech API', tagColor: '#10B981', action: 'Mulai Simulasi', route: '/voice-to-speech' },
   { icon: 'quiz', iconBg: '#F59E0B', title: 'Kuis Adaptif', description: 'Tes pemahamanmu dengan kuis pilihan ganda yang dihasilkan AI dari dokumen kuliahmu.', tag: 'Didukung AI', tagColor: '#F59E0B', action: 'Ambil Kuis', route: '/quiz-mode' }
 ]
@@ -159,7 +159,7 @@ onMounted(async () => {
           <h2 class="sec-label">Fitur Belajar Unggulan</h2>
         </div>
         <div class="tools-grid">
-          <button v-for="(tool, i) in learningTools" :key="tool.title" class="t-card" :style="{'--td': i * 0.1 + 's'}" @click="handleToolClick(tool)">
+          <button v-for="(tool, i) in learningTools" :key="tool.title" class="t-card" :style="{'--td': i * 0.1 + 's', '--hover-color': tool.tagColor}" @click="handleToolClick(tool)">
             <div class="t-icon" :style="{ background: tool.iconBg }">
               <svg v-if="tool.icon==='flashcard'" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
               <svg v-if="tool.icon==='voice'" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
@@ -268,7 +268,7 @@ onMounted(async () => {
 .t-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
 .t-tag { font-size: 0.6875rem; font-weight: 600; padding: 0.25rem 0.625rem; border-radius: 6px; white-space: nowrap; }
 .t-action { font-size: 0.8125rem; font-weight: 600; color: #475569; transition: color 0.2s; display: inline-flex; align-items: center; gap: 0.25rem; }
-.t-card:hover .t-action { color: #3B82F6; }
+.t-card:hover .t-action { color: var(--hover-color, #3B82F6); }
 .action-arrow { transition: transform 0.2s ease; }
 .t-card:hover .action-arrow { transform: translateX(3px); }
 

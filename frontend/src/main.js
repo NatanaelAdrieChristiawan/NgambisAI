@@ -24,6 +24,10 @@ app.use(router)
 
 // Initialize auth state before mounting
 const authStore = useAuthStore()
-authStore.initAuth().then(() => {
-  app.mount('#app')
-})
+authStore.initAuth()
+  .catch((err) => {
+    console.error('Failed to initialize authentication state:', err)
+  })
+  .finally(() => {
+    app.mount('#app')
+  })
