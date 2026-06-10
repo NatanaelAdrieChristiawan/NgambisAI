@@ -376,7 +376,7 @@ function onTouchEnd() {
       <router-link
         v-for="item in menuItems"
         :key="item.route"
-        :to="{ name: item.route }"
+        :to="{ name: item.route, query: ['Flashcards', 'QuizMode', 'VoiceToSpeech'].includes(item.route) ? { new: true } : {} }"
         class="nav-item"
         :class="{ active: isActive(item.route) }"
         :style="{ '--theme-color': item.theme, '--theme-bg': item.theme + '15' }"

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, inject, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useQuizStore } from '@/stores/quiz'
 import { useDocumentStore } from '@/stores/document'
@@ -10,6 +11,8 @@ const authStore = useAuthStore()
 const quizStore = useQuizStore()
 const docStore = useDocumentStore()
 const toggleSidebar = inject('toggleSidebar', () => {})
+const route = useRoute()
+const router = useRouter()
 
 const displayName = computed(() => authStore.userName || 'User')
 const avatarUrl = computed(() => authStore.userAvatar)
@@ -119,9 +122,19 @@ onMounted(() => {
   docStore.loadDocuments()
   window.addEventListener('click', closeAllDropdowns)
   speechSupported.value = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
-  if (quizStore.quizItems.length > 0 && quizStore.currentQuestion?.itemType === 'ESSAY') {
+  if (route.query.new === 'true' || route.query.new === true) {
+    handleNewSession()
+    router.replace({ query: {} })
+  } else if (quizStore.quizItems.length > 0 && quizStore.currentQuestion?.itemType === 'ESSAY') {
     showSetup.value = false
     loadProgress()
+  }
+})
+
+watch(() => route.query.new, (newVal) => {
+  if (newVal === 'true' || newVal === true) {
+    handleNewSession()
+    router.replace({ query: {} })
   }
 })
 

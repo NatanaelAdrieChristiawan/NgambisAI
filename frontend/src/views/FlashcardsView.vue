@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, inject, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useQuizStore } from '@/stores/quiz'
 import { useDocumentStore } from '@/stores/document'
@@ -9,6 +10,8 @@ const authStore = useAuthStore()
 const quizStore = useQuizStore()
 const docStore = useDocumentStore()
 const toggleSidebar = inject('toggleSidebar', () => {})
+const route = useRoute()
+const router = useRouter()
 
 const displayName = computed(() => authStore.userName || 'User')
 const avatarUrl = computed(() => authStore.userAvatar)
@@ -77,8 +80,18 @@ function handleNewFlashcard() {
 
 onMounted(() => {
   docStore.loadDocuments()
-  if (quizStore.quizItems.length > 0 && quizStore.currentQuestion?.itemType === 'ESSAY') {
+  if (route.query.new === 'true' || route.query.new === true) {
+    handleNewFlashcard()
+    router.replace({ query: {} })
+  } else if (quizStore.quizItems.length > 0 && quizStore.currentQuestion?.itemType === 'ESSAY') {
     showSetup.value = false
+  }
+})
+
+watch(() => route.query.new, (newVal) => {
+  if (newVal === 'true' || newVal === true) {
+    handleNewFlashcard()
+    router.replace({ query: {} })
   }
 })
 

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, inject, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useQuizStore } from '@/stores/quiz'
 import { useDocumentStore } from '@/stores/document'
@@ -9,6 +10,8 @@ const authStore = useAuthStore()
 const quizStore = useQuizStore()
 const docStore = useDocumentStore()
 const toggleSidebar = inject('toggleSidebar', () => {})
+const route = useRoute()
+const router = useRouter()
 
 const displayName = computed(() => authStore.userName || 'User')
 const avatarUrl = computed(() => authStore.userAvatar)
@@ -260,7 +263,10 @@ function handleNewQuiz() {
 onMounted(() => {
   docStore.loadDocuments()
   window.addEventListener('click', closeAllDropdowns)
-  if (quizStore.quizItems.length > 0 && quizStore.currentQuestion?.itemType === 'MULTIPLE_CHOICE') {
+  if (route.query.new === 'true' || route.query.new === true) {
+    handleNewQuiz()
+    router.replace({ query: {} })
+  } else if (quizStore.quizItems.length > 0 && quizStore.currentQuestion?.itemType === 'MULTIPLE_CHOICE') {
     showSetup.value = false
     const allAnswered = quizStore.quizItems.length > 0 && quizStore.quizItems.every(q => quizStore.answers[q.id] !== undefined)
     if (allAnswered) {
@@ -269,6 +275,13 @@ onMounted(() => {
       quizFinished.value = false
       loadCurrentQuestionState()
     }
+  }
+})
+
+watch(() => route.query.new, (newVal) => {
+  if (newVal === 'true' || newVal === true) {
+    handleNewQuiz()
+    router.replace({ query: {} })
   }
 })
 

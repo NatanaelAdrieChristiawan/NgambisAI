@@ -59,7 +59,7 @@ const learningTools = [
 ]
 
 function handleNewChat() { router.push('/chat') }
-function handleToolClick(tool) { router.push(tool.route) }
+function handleToolClick(tool) { router.push({ path: tool.route, query: { new: true } }) }
 function handleStartSession() { router.push('/chat') }
 function handleHistoryClick(item) { router.push({ path: '/chat', query: { conversationId: item.id } }) }
 
