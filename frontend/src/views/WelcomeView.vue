@@ -231,7 +231,6 @@ function scrollToFeatures() {
   align-items: center;
   gap: 0.75rem;
 }
-
 .btn-nav-login {
   padding: 0.5rem 1.125rem;
   background: transparent;

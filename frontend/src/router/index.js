@@ -23,6 +23,12 @@ const routes = [
     component: () => import('@/views/auth/OAuth2CallbackView.vue'),
     meta: { requiresAuth: false, title: 'Authenticating...' }
   },
+  {
+    path: '/presentation',
+    name: 'Presentation',
+    component: () => import('@/views/PresentationView.vue'),
+    meta: { requiresAuth: false, title: 'Presentation Deck' }
+  },
 
   // ===== Protected Routes =====
   {
