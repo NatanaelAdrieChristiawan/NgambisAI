@@ -26,7 +26,21 @@ export const useAuthStore = defineStore('auth', () => {
 
   // ===== Getters (Computed) =====
   const isAuthenticated = computed(() => !!accessToken.value)
-  const userName = computed(() => user.value?.name || user.value?.username || '')
+
+  /**
+   * Resolves user display name.
+   * Priority: name → username (but NOT if it's an email address) → email local-part.
+   * Google users have username = email, so we fall back to the part before '@'.
+   */
+  const userName = computed(() => {
+    if (!user.value) return ''
+    if (user.value.name) return user.value.name
+    const u = user.value.username || ''
+    // If username looks like an email (Google user), extract display-friendly part
+    if (u.includes('@')) return u.split('@')[0]
+    return u
+  })
+
   const userEmail = computed(() => user.value?.email || '')
   const userAvatar = computed(() => user.value?.profilePicture || null)
   const userProvider = computed(() => user.value?.provider || 'LOCAL')
@@ -101,18 +115,23 @@ export const useAuthStore = defineStore('auth', () => {
       throw new Error(error.value)
     }
 
-    // Save tokens
+    // Save tokens to Pinia state (also synced to localStorage via persist plugin)
     accessToken.value = token
     refreshToken.value = refresh
+    // Keep localStorage in sync for the Axios interceptor which reads directly from it
     localStorage.setItem('accessToken', token)
     localStorage.setItem('refreshToken', refresh)
 
-    // Set basic user info from URL params
+    // Set preliminary user info from URL params so UI renders immediately
+    // fetchProfile() will overwrite this with the full server response
     user.value = {
       id: userId,
-      email: email,
-      name: name,
-      provider: 'GOOGLE'
+      email: email || '',
+      name: name || (email ? email.split('@')[0] : ''),  // fallback to email local-part
+      username: email || '',   // Google users use email as username in DB
+      profilePicture: null,    // will be filled by fetchProfile()
+      provider: 'GOOGLE',
+      roles: ['USER']
     }
 
     return user.value
@@ -120,20 +139,37 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Fetch the current user's profile from backend.
-   * Call after login/OAuth2 to get full user data.
+   * Normalizes the UserResponse shape to be consistent with _saveAuth().
+   * This is CRITICAL: UserResponse uses `id` (not `userId`) and lacks `roles`.
    */
   async function fetchProfile() {
     if (!accessToken.value) return null
 
     try {
       const response = await authApi.getProfile()
-      user.value = response.data.data
+      const data = response.data.data
+
+      // Normalize field names — UserResponse shape may differ from AuthResponse shape
+      user.value = {
+        id: data.id,
+        username: data.username || '',
+        email: data.email || '',
+        // Guard: if name is null/empty (edge case for Google user), derive from email
+        name: data.name || (data.email ? data.email.split('@')[0] : data.username || ''),
+        profilePicture: data.profilePicture || null,
+        provider: data.provider || 'LOCAL',
+        // roles is now included in UserResponse — use server data, fallback to persisted or default
+        roles: data.roles || user.value?.roles || ['USER'],
+        createdAt: data.createdAt
+      }
       return user.value
     } catch (err) {
       // If 401, token is invalid — logout
       if (err.response?.status === 401) {
         logout()
       }
+      // On other errors, keep existing user.value (persisted) so UI doesn't break
+      console.warn('[auth] fetchProfile failed:', err.message)
       return null
     }
   }
@@ -236,5 +272,13 @@ export const useAuthStore = defineStore('auth', () => {
     clearError,
     requestAuth,
     closeAuthModal
+  }
+}, {
+  // Persist critical auth state across page refreshes
+  // accessToken and refreshToken are also mirrored in localStorage for Axios interceptor
+  persist: {
+    key: 'ngambis-auth',
+    storage: localStorage,
+    pick: ['user', 'accessToken', 'refreshToken']
   }
 })

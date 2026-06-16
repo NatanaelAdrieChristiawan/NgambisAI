@@ -80,15 +80,9 @@ public class AuthController {
     public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(@AuthenticationPrincipal User user) {
         log.info("Profile request for user: {}", user.getUsername());
 
-        UserResponse response = UserResponse.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .name(user.getName())
-                .profilePicture(user.getProfilePicture())
-                .provider(user.getProvider() != null ? user.getProvider().name() : null)
-                .createdAt(user.getCreatedAt())
-                .build();
+        // Reload from DB to get the freshest data (name, profilePicture, etc.)
+        // @AuthenticationPrincipal is loaded once during JWT validation and may be stale
+        UserResponse response = userService.getUserById(user.getId());
 
         return ResponseEntity.ok(ApiResponse.success("User profile retrieved", response));
     }

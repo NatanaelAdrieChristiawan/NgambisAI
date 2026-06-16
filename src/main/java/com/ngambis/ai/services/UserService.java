@@ -58,9 +58,10 @@ public class UserService implements UserDetailsService {
     }
 
     /**
-     * Retrieves a user by ID with caching.
+     * Retrieves a user by ID, always reading from DB.
+     * Used by /api/auth/me so caching is intentionally avoided here to prevent stale
+     * name/profilePicture after an OAuth2 update.
      */
-    @Cacheable(value = "users", key = "#id")
     @Transactional(readOnly = true)
     public UserResponse getUserById(UUID id) {
         User user = userRepository.findById(id)
@@ -125,6 +126,7 @@ public class UserService implements UserDetailsService {
                 .name(user.getName())
                 .profilePicture(user.getProfilePicture())
                 .provider(user.getProvider() != null ? user.getProvider().name() : null)
+                .roles(user.getRoles())
                 .createdAt(user.getCreatedAt())
                 .build();
     }

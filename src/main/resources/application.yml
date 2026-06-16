@@ -89,7 +89,7 @@ spring:
 # ========================================
 app:
   oauth2:
-    redirect-uri: http://localhost:5173/oauth2/callback
+    redirect-uri: ${OAUTH2_FRONTEND_REDIRECT:http://localhost:5173/oauth2/callback}
 
 # JWT Configuration
 jwt:
