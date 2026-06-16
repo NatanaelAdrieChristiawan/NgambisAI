@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -56,6 +57,9 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler;
+
+    @Value("${app.oauth2.redirect-uri:http://localhost:5173/oauth2/callback}")
+    private String frontendRedirectUri;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -111,13 +115,16 @@ public class SecurityConfig {
     /**
      * Handles OAuth2 authentication failures by logging the error
      * and redirecting to the frontend with an error message.
+     * Uses the configured redirect URI so it works in both local and production.
      */
     @Bean
     public AuthenticationFailureHandler oAuth2FailureHandler() {
         return (HttpServletRequest request, HttpServletResponse response,
                 AuthenticationException exception) -> {
             log.error("OAuth2 authentication failed: {}", exception.getMessage(), exception);
-            response.sendRedirect("http://localhost:5173/login?error=oauth2_failed&message="
+            // Derive the login page from the oauth2 callback URI (replace /oauth2/callback with /login)
+            String loginUrl = frontendRedirectUri.replace("/oauth2/callback", "/login");
+            response.sendRedirect(loginUrl + "?error=oauth2_failed&message="
                     + java.net.URLEncoder.encode(exception.getMessage(), "UTF-8"));
         };
     }

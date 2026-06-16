@@ -50,7 +50,7 @@ const authApi = {
    * so that session cookies and the callback URI match.
    */
   getGoogleLoginUrl() {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
     return `${baseUrl}/oauth2/authorization/google`
   }
 }

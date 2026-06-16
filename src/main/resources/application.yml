@@ -102,7 +102,7 @@ ai:
   gemini:
     api-key: ${GEMINI_API_KEY}  # REMOVED hardcoded key - use environment variable only
     base-url: https://generativelanguage.googleapis.com/v1beta
-    model: gemini-2.5-flash
+    model: ${GEMINI_MODEL:gemini-3.1-flash-lite}
   # Speech-to-Text Configuration
   # STT is now handled by browser's Web Speech API (FREE)
   # Backend only receives pre-transcribed text → no server-side STT needed
@@ -121,6 +121,10 @@ ai:
 
 server:
   port: 8080
+  # Trust X-Forwarded-Proto/Host headers from Nginx reverse proxy.
+  # Without this, Spring generates http://localhost:8080 as redirect_uri
+  # instead of https://ngambisai.me → causes OAuth2 redirect_uri_mismatch.
+  forward-headers-strategy: NATIVE
   compression:
     enabled: true
     mime-types: application/json,application/xml,text/html,text/xml,text/plain

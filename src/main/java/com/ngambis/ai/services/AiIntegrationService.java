@@ -21,6 +21,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -51,6 +52,75 @@ public class AiIntegrationService {
 
     @Value("${ai.gemini.model}")
     private String geminiModel;
+
+    private List<String> cachedApiKeys = null;
+    private final AtomicInteger currentKeyIndex = new AtomicInteger(0);
+
+    private synchronized List<String> getApiKeysList() {
+        if (cachedApiKeys == null) {
+            if (geminiApiKey == null || geminiApiKey.isBlank()) {
+                cachedApiKeys = Collections.emptyList();
+            } else {
+                cachedApiKeys = Arrays.stream(geminiApiKey.split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .collect(Collectors.toList());
+            }
+        }
+        return cachedApiKeys;
+    }
+
+    /**
+     * Executes the POST call to Gemini API.
+     * Rotates API keys if a 429 (Too Many Requests) or 403 (Forbidden) error is encountered.
+     */
+    private String executeGeminiPost(Object requestBody) {
+        List<String> keys = getApiKeysList();
+        if (keys.isEmpty()) {
+            throw new AiServiceException("No Gemini API keys configured in environment variables");
+        }
+
+        int maxAttempts = keys.size();
+        Exception lastException = null;
+
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            int index = currentKeyIndex.get() % keys.size();
+            String activeKey = keys.get(index);
+
+            try {
+                return webClient.post()
+                        .uri("/models/{model}:generateContent?key={apiKey}", geminiModel, activeKey)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(requestBody)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .timeout(REQUEST_TIMEOUT)
+                        .block();
+            } catch (WebClientResponseException e) {
+                lastException = e;
+                int statusCode = e.getStatusCode().value();
+                log.warn("Gemini API call failed with HTTP status {} using key index {}.", statusCode, index);
+
+                // Rotate key for rate limiting (429) or invalid credentials (403)
+                if (statusCode == 429 || statusCode == 403) {
+                    int nextIndex = currentKeyIndex.incrementAndGet() % keys.size();
+                    log.warn("Rotating to next Gemini API key index: {}/{}", nextIndex, keys.size());
+                    continue;
+                }
+                // For other client errors (like 400 Bad Request), throw immediately
+                throw new AiServiceException("AI API call failed: " + e.getMessage() + ". Response: " + e.getResponseBodyAsString(), e);
+            } catch (Exception e) {
+                lastException = e;
+                log.error("Failed to communicate with Gemini API using key index {}", index, e);
+                // Rotate key for network errors/timeouts too
+                int nextIndex = currentKeyIndex.incrementAndGet() % keys.size();
+                log.warn("Network or timeout issue. Rotating to next Gemini API key index: {}/{}", nextIndex, keys.size());
+            }
+        }
+
+        throw new AiServiceException("All " + keys.size() + " configured Gemini API keys failed. Last error: " +
+                (lastException != null ? lastException.getMessage() : "unknown"), lastException);
+    }
 
     @Value("${ai.context.max-length:2000}")
     private int maxContextLength;
@@ -207,19 +277,10 @@ public class AiIntegrationService {
         );
 
         try {
-            String responseBody = webClient.post()
-                .uri("/models/{model}:generateContent?key={apiKey}", geminiModel, geminiApiKey)
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(requestBody)
-                .retrieve()
-                .bodyToMono(String.class)
-                .timeout(REQUEST_TIMEOUT)
-                .block();
-
+            String responseBody = executeGeminiPost(requestBody);
             return parseGeneratedItems(responseBody, itemType);
-
-        } catch (WebClientResponseException e) {
-            log.error("Gemini API error {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
+        } catch (Exception e) {
+            if (e instanceof AiServiceException) throw (AiServiceException) e;
             throw new AiServiceException("AI question generation failed: " + e.getMessage(), e);
         }
     }
@@ -294,18 +355,10 @@ public class AiIntegrationService {
         );
 
         try {
-            String responseBody = webClient.post()
-                .uri("/models/{model}:generateContent?key={apiKey}", geminiModel, geminiApiKey)
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(requestBody)
-                .retrieve()
-                .bodyToMono(String.class)
-                .timeout(REQUEST_TIMEOUT)
-                .block();
-
+            String responseBody = executeGeminiPost(requestBody);
             return parseSimpleGeminiResponse(responseBody);
-        } catch (WebClientResponseException e) {
-            log.error("Gemini API error {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
+        } catch (Exception e) {
+            if (e instanceof AiServiceException) throw (AiServiceException) e;
             throw new AiServiceException("AI chat failed: " + e.getMessage(), e);
         }
     }
@@ -355,21 +408,10 @@ public class AiIntegrationService {
                     )
             );
 
-            String responseBody = webClient.post()
-                    .uri("/models/{model}:generateContent?key={apiKey}", geminiModel, geminiApiKey)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(requestBody)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .timeout(REQUEST_TIMEOUT)
-                    .block();
-
+            String responseBody = executeGeminiPost(requestBody);
             log.debug("Received response from Gemini API");
             return parseGeminiResponse(responseBody);
 
-        } catch (WebClientResponseException e) {
-            log.error("Gemini API error {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw new AiServiceException("AI API failed: " + e.getMessage(), e);
         } catch (Exception e) {
             if (e instanceof AiServiceException) throw (AiServiceException) e;
             log.error("Failed to communicate with Gemini API", e);
@@ -495,7 +537,7 @@ public class AiIntegrationService {
 
     /**
      * Parses Gemini API JSON response.
-     * Supports thinking models (gemini-2.5-flash) with thought parts.
+     * Supports thinking models (e.g. gemini-2.5-flash, gemini-3.1-flash-lite) with thought parts.
      */
     private AiEvaluationResponse parseGeminiResponse(String responseBody) {
         try {

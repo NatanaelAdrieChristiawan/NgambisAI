@@ -23,9 +23,7 @@ function handleGetStarted() {
   authStore.requestAuth('Buat akun atau masuk untuk mulai belajar.', '/dashboard')
 }
 
-function handleLogin() {
-  authStore.requestAuth('Masuk ke akun kamu.', '/dashboard')
-}
+
 
 function scrollToFeatures() {
   const el = document.getElementById('features-section')
@@ -43,7 +41,6 @@ function scrollToFeatures() {
           <span class="brand-text">NGAMBIS<span class="brand-accent">.AI</span></span>
         </div>
         <nav class="navbar-actions">
-          <button class="btn-nav-login" @click="handleLogin">Masuk</button>
           <button class="btn-nav-cta" @click="handleGetStarted">Mulai Sekarang</button>
         </nav>
       </div>
@@ -230,22 +227,6 @@ function scrollToFeatures() {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-}
-.btn-nav-login {
-  padding: 0.5rem 1.125rem;
-  background: transparent;
-  border: none;
-  color: #475569;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: color 0.2s ease;
-  border-radius: 8px;
-}
-
-.btn-nav-login:hover {
-  color: #3B82F6;
-  background: #F0F7FF;
 }
 
 .btn-nav-cta {
@@ -541,10 +522,6 @@ function scrollToFeatures() {
 }
 
 @media (max-width: 600px) {
-  /* Hide separate Login link on mobile — Get Started opens auth modal with both tabs */
-  .btn-nav-login {
-    display: none;
-  }
 
   .hero-section {
     padding: 3rem 1rem 2.5rem;
