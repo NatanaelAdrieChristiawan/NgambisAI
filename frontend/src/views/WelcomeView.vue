@@ -22,13 +22,6 @@ onMounted(() => {
 function handleGetStarted() {
   authStore.requestAuth('Buat akun atau masuk untuk mulai belajar.', '/dashboard')
 }
-
-
-
-function scrollToFeatures() {
-  const el = document.getElementById('features-section')
-  if (el) el.scrollIntoView({ behavior: 'smooth' })
-}
 </script>
 
 <template>
@@ -70,13 +63,6 @@ function scrollToFeatures() {
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
                  fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
-            </svg>
-          </button>
-          <button class="btn-secondary-hero" @click="scrollToFeatures">
-            <span>Pelajari Fitur</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/><path d="m12 8 4 4-4 4"/><path d="M8 12h8"/>
             </svg>
           </button>
         </div>

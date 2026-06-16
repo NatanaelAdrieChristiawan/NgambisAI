@@ -800,6 +800,14 @@ onUnmounted(() => {
   .qz-option { padding:1.25rem; font-size:1rem; }
   .timer-circle { width:44px; height:44px; top:1rem; left:1rem; }
   .setup-card { padding:2rem 1.5rem; }
+  .qz-finished { padding: 1rem; }
+  .finished-card { padding: 2rem 1.25rem; }
+  .finished-score { font-size: 2.75rem; }
+  .finished-score .pts-text { font-size: 1.25rem; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin: 1.5rem 0; }
+  .stat-card { padding: 0.75rem; }
+  .stat-card .stat-val { font-size: 1.25rem; }
+  .stat-card .stat-lbl { font-size: 0.7rem; }
   /* Label min-height removed to align properly under vertical layout */
 }
 </style>
