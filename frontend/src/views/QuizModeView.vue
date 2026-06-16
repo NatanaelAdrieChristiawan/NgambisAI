@@ -131,6 +131,29 @@ const normalizedScore = computed(() => {
   return totalQuestions.value > 0 ? Math.round((correctCount.value / totalQuestions.value) * 100) : 0
 })
 
+const feedbackClass = computed(() => {
+  if (selectedAnswer.value === -1) return 'fb-skipped'
+  return isCorrect.value ? 'fb-correct' : 'fb-wrong'
+})
+
+const feedbackTitle = computed(() => {
+  if (selectedAnswer.value === -1) return 'Pertanyaan Dilewati'
+  return isCorrect.value ? 'Jawaban Benar!' : 'Jawaban Kurang Tepat'
+})
+
+const feedbackDescription = computed(() => {
+  if (selectedAnswer.value === -1) {
+    const correctOpt = currentQuestion.value?.correctAnswer || ''
+    return `Jawaban yang benar adalah: ${correctOpt}`
+  }
+  if (isCorrect.value) {
+    return 'Luar biasa! Jawaban Anda benar.'
+  } else {
+    const correctOpt = currentQuestion.value?.correctAnswer || ''
+    return `Jawaban yang benar adalah: ${correctOpt}`
+  }
+})
+
 // Quiz options with shapes/colors
 const optionMeta = [
   { shape: 'triangle', color: '#E53935' },
@@ -572,11 +595,46 @@ onUnmounted(() => {
         </div>
       </transition>
 
-      <div class="qz-bottom-controls">
+      <div class="qz-bottom-controls" v-if="!showResult">
         <button class="btn-skip" @click="skipQuestion" :disabled="showResult"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l12 8-12 8V4z"/><rect x="18" y="4" width="2" height="16"/></svg> Lewati</button>
-        <button v-if="showResult" class="btn-next-q" @click="nextQuestion">{{ quizStore.isLastQuestion ? 'Selesai' : 'Selanjutnya' }} <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
       </div>
     </div>
+
+    <!-- Feedback Popup Alert -->
+    <Transition name="popup-slide">
+      <div v-if="showResult" class="feedback-popup" :class="feedbackClass">
+        <div class="feedback-icon-box">
+          <!-- Correct Icon -->
+          <svg v-if="isCorrect && selectedAnswer !== -1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <!-- Skipped Icon -->
+          <svg v-else-if="selectedAnswer === -1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <!-- Incorrect Icon -->
+          <svg v-else xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </div>
+        <div class="feedback-content">
+          <h4 class="feedback-title">{{ feedbackTitle }}</h4>
+          <p class="feedback-desc">{{ feedbackDescription }}</p>
+        </div>
+        <div class="feedback-actions">
+          <button class="btn-next-popup" @click="nextQuestion">
+            <span>{{ quizStore.isLastQuestion ? 'Selesai' : 'Selanjutnya' }}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -809,5 +867,193 @@ onUnmounted(() => {
   .stat-card .stat-val { font-size: 1.25rem; }
   .stat-card .stat-lbl { font-size: 0.7rem; }
   /* Label min-height removed to align properly under vertical layout */
+}
+
+/* Feedback Popup Card styling */
+.feedback-popup {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translate(-50%, 0);
+  width: calc(100% - 2.5rem);
+  max-width: 580px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12), 0 5px 15px rgba(0, 0, 0, 0.06);
+  padding: 1.25rem 1.75rem;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  border-left: 8px solid;
+  transition: all 0.3s ease;
+}
+
+.fb-correct {
+  background: #ECFDF5;
+  border-color: #10B981;
+}
+.fb-correct .feedback-icon-box {
+  background: #10B981;
+  color: white;
+}
+.fb-correct .feedback-title {
+  color: #065F46;
+}
+.fb-correct .feedback-desc {
+  color: #047857;
+}
+
+.fb-wrong {
+  background: #FEF2F2;
+  border-color: #EF4444;
+}
+.fb-wrong .feedback-icon-box {
+  background: #EF4444;
+  color: white;
+}
+.fb-wrong .feedback-title {
+  color: #991B1B;
+}
+.fb-wrong .feedback-desc {
+  color: #B91C1C;
+}
+
+.fb-skipped {
+  background: #F8FAFC;
+  border-color: #94A3B8;
+}
+.fb-skipped .feedback-icon-box {
+  background: #64748B;
+  color: white;
+}
+.fb-skipped .feedback-title {
+  color: #1E293B;
+}
+.fb-skipped .feedback-desc {
+  color: #475569;
+}
+
+.feedback-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: white;
+  animation: pop-icon 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.feedback-icon-box svg {
+  color: white;
+}
+
+.feedback-content {
+  flex: 1;
+  text-align: left;
+}
+
+.feedback-title {
+  font-size: 1.125rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.feedback-desc {
+  font-size: 0.875rem;
+  margin: 0.25rem 0 0 0;
+  line-height: 1.4;
+  word-break: break-word;
+  font-weight: 500;
+}
+
+.feedback-actions {
+  flex-shrink: 0;
+}
+
+.btn-next-popup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  color: white;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.fb-correct .btn-next-popup {
+  background: #10B981;
+}
+.fb-correct .btn-next-popup:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.fb-wrong .btn-next-popup {
+  background: #EF4444;
+}
+.fb-wrong .btn-next-popup:hover {
+  background: #DC2626;
+  transform: translateY(-1px);
+}
+
+.fb-skipped .btn-next-popup {
+  background: #475569;
+}
+.fb-skipped .btn-next-popup:hover {
+  background: #334155;
+  transform: translateY(-1px);
+}
+
+/* Animations */
+.popup-slide-enter-active {
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+}
+.popup-slide-leave-active {
+  transition: transform 0.3s ease-in, opacity 0.3s ease;
+}
+.popup-slide-enter-from, .popup-slide-leave-to {
+  transform: translate(-50%, 150px);
+  opacity: 0;
+}
+.popup-slide-enter-to, .popup-slide-leave-from {
+  transform: translate(-50%, 0);
+  opacity: 1;
+}
+
+@keyframes pop-icon {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+
+@media (max-width: 600px) {
+  .feedback-popup {
+    bottom: 1rem;
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    gap: 1rem;
+    padding: 1.25rem;
+  }
+  .feedback-icon-box {
+    margin: 0 auto;
+  }
+  .feedback-content {
+    text-align: center;
+  }
+  .feedback-actions {
+    width: 100%;
+  }
+  .btn-next-popup {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>
