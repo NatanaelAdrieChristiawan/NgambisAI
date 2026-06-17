@@ -218,7 +218,7 @@ async function startSession() {
   if (docStore.selectedDocumentIds.length === 0) { setupError.value = 'Pilih minimal satu dokumen.'; return }
   setupError.value = null
   try {
-    await quizStore.createSession({ documentIds: docStore.selectedDocumentIds, personaType: personaType.value, questionCount: questionCount.value, itemType: 'ESSAY' })
+    await quizStore.createSession({ documentIds: docStore.selectedDocumentIds, personaType: personaType.value, questionCount: questionCount.value, itemType: 'ESSAY', sourceView: 'VoiceToSpeech' })
     showSetup.value = false; resetLocalState(); saveProgress()
   } catch (err) { setupError.value = quizStore.error || 'Gagal membuat simulasi ujian lisan.' }
 }

@@ -62,7 +62,8 @@ async function startFlashcards() {
       documentIds: docStore.selectedDocumentIds,
       personaType: 'FRIENDLY_SENIOR',
       questionCount: questionCount.value,
-      itemType: 'ESSAY'
+      itemType: 'ESSAY',
+      sourceView: 'Flashcards'
     })
     showSetup.value = false
     isFlipped.value = false

@@ -45,6 +45,12 @@ export const useQuizStore = defineStore('quiz', () => {
   const generating = ref(false)
   const error = ref(null)
 
+  /**
+   * Tracks which view created each session (e.g. 'Flashcards' | 'VoiceToSpeech' | 'QuizMode').
+   * Stored as { sessionId: viewName } — used to disambiguate ESSAY sessions in the sidebar.
+   */
+  const sessionSources = ref({})
+
   // ===== Getters =====
   const currentQuestion = computed(() => {
     return quizItems.value[currentQuestionIndex.value] || null
@@ -67,9 +73,10 @@ export const useQuizStore = defineStore('quiz', () => {
 
   /**
    * Create a new session — AI generates questions from documents.
-   * @param {{ documentIds: string[], personaType: string, questionCount: number, itemType: string }} options
+   * @param {{ documentIds: string[], personaType: string, questionCount: number, itemType: string, sourceView?: string }} options
+   *   sourceView — the route name of the calling view ('Flashcards' | 'VoiceToSpeech' | 'QuizMode')
    */
-  async function createSession({ documentIds, personaType = 'FRIENDLY_SENIOR', questionCount = 5, itemType = 'MULTIPLE_CHOICE' }) {
+  async function createSession({ documentIds, personaType = 'FRIENDLY_SENIOR', questionCount = 5, itemType = 'MULTIPLE_CHOICE', sourceView = null }) {
     const authStore = useAuthStore()
     if (!authStore.user?.id) throw new Error('User not authenticated')
 
@@ -86,6 +93,20 @@ export const useQuizStore = defineStore('quiz', () => {
 
       const data = response.data.data
       currentSession.value = data
+
+      // ✅ Realtime history: prepend new session to sidebar immediately
+      const existingIndex = sessions.value.findIndex(s => s.id === data.id)
+      if (existingIndex === -1) {
+        sessions.value = [data, ...sessions.value]
+      } else {
+        sessions.value[existingIndex] = data
+      }
+
+      // Track which view created this session (to differentiate ESSAY flashcard vs voice)
+      if (sourceView && data.id) {
+        sessionSources.value = { ...sessionSources.value, [data.id]: sourceView }
+      }
+
       quizItems.value = (data.quizItems || []).map(item => {
         const mapped = {
           id: item.id,
@@ -241,6 +262,9 @@ export const useQuizStore = defineStore('quiz', () => {
       if (currentSession.value?.id === sessionId) {
         resetQuiz()
       }
+      // Clean up source tracking
+      const { [sessionId]: _, ...rest } = sessionSources.value
+      sessionSources.value = rest
     } catch (err) {
       error.value = err.response?.data?.message || 'Gagal menghapus sesi'
       throw err
@@ -340,6 +364,7 @@ export const useQuizStore = defineStore('quiz', () => {
     loading,
     generating,
     error,
+    sessionSources,
     // Getters
     currentQuestion,
     totalQuestions,

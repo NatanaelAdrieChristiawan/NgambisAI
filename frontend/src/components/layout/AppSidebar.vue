@@ -31,10 +31,46 @@ const menuItems = [
   { name: 'Ujian Lisan', icon: 'voice', route: 'VoiceToSpeech', theme: '#10B981' }
 ]
 
+/**
+ * Helper: get the effective itemType of a session.
+ * Reads from quizItems[0] if session-level itemType is missing.
+ */
+function getSessionItemType(session) {
+  if (session.itemType) return session.itemType
+  if (session.quizItems?.length > 0) return session.quizItems[0].itemType
+  return null
+}
+
+/**
+ * Helper: determine the source view of an ESSAY session.
+ * For sessions created in this browser tab, we have sessionSources.
+ * For sessions loaded from server (older history), we default to both
+ * flashcard and voice (they share ESSAY type); the heuristic is:
+ * if source is tracked → use it; otherwise show in the current view.
+ */
+function isFlashcardSession(session) {
+  const type = getSessionItemType(session)
+  if (type !== 'ESSAY') return false
+  const src = quizStore.sessionSources[session.id]
+  // If we know the source, trust it
+  if (src) return src === 'Flashcards'
+  // Fallback for server-loaded sessions: show under both flashcard & voice
+  return true
+}
+
+function isVoiceSession(session) {
+  const type = getSessionItemType(session)
+  if (type !== 'ESSAY') return false
+  const src = quizStore.sessionSources[session.id]
+  if (src) return src === 'VoiceToSpeech'
+  // Fallback: also show under voice for server-loaded ESSAY sessions
+  return true
+}
+
 // Dynamic flashcard history from store
 const flashcardHistory = computed(() => {
   const list = [...quizStore.sessions]
-    .filter(s => s.itemType === 'ESSAY' || (s.quizItems && s.quizItems.length > 0 && s.quizItems[0].itemType === 'ESSAY'))
+    .filter(isFlashcardSession)
     .reverse()
     .map(session => ({
       id: session.id,
@@ -53,7 +89,7 @@ const flashcardHistory = computed(() => {
 // Dynamic voice history from store
 const voiceHistory = computed(() => {
   const list = [...quizStore.sessions]
-    .filter(s => s.itemType === 'ESSAY' || (s.quizItems && s.quizItems.length > 0 && s.quizItems[0].itemType === 'ESSAY'))
+    .filter(isVoiceSession)
     .reverse()
     .map(session => ({
       id: session.id,
@@ -72,7 +108,7 @@ const voiceHistory = computed(() => {
 // Dynamic quiz history from store
 const quizHistory = computed(() => {
   const list = [...quizStore.sessions]
-    .filter(s => s.itemType === 'MULTIPLE_CHOICE' || (s.quizItems && s.quizItems.length > 0 && s.quizItems[0].itemType === 'MULTIPLE_CHOICE'))
+    .filter(s => getSessionItemType(s) === 'MULTIPLE_CHOICE')
     .reverse()
     .map(session => ({
       id: session.id,

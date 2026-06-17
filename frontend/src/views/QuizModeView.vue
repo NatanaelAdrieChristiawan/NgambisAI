@@ -266,7 +266,7 @@ async function startQuiz() {
   }
   setupError.value = null
   try {
-    await quizStore.createSession({ documentIds: docStore.selectedDocumentIds, personaType: personaType.value, questionCount: questionCount.value, itemType: 'MULTIPLE_CHOICE' })
+    await quizStore.createSession({ documentIds: docStore.selectedDocumentIds, personaType: personaType.value, questionCount: questionCount.value, itemType: 'MULTIPLE_CHOICE', sourceView: 'QuizMode' })
     showSetup.value = false
     quizFinished.value = false
     loadCurrentQuestionState()
