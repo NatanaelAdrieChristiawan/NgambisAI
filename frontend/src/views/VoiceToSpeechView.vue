@@ -91,6 +91,39 @@ function saveProgress() {
 
 function loadProgress() {
   if (!quizStore.currentSession?.id) return
+
+  // 1. Check if there are evaluations from the server (persistent history)
+  const serverEvaluations = []
+  quizStore.quizItems.forEach(item => {
+    if (item.evaluations && item.evaluations.length > 0) {
+      // Pick the latest evaluation
+      const ev = item.evaluations[0]
+      serverEvaluations.push({
+        question: item.questionText,
+        score: ev.score,
+        feedback: ev.feedback,
+        studentAudioTranscript: ev.studentAudioTranscript
+      })
+    }
+  })
+
+  if (serverEvaluations.length > 0) {
+    evaluations.value = serverEvaluations
+    transcript.value = ''
+    evaluation.value = null
+    evalError.value = null
+    
+    if (serverEvaluations.length === quizStore.quizItems.length) {
+      finished.value = true
+      currentQIndex.value = quizStore.quizItems.length - 1
+    } else {
+      finished.value = false
+      currentQIndex.value = serverEvaluations.length
+    }
+    return
+  }
+
+  // 2. Fall back to local storage (for offline/in-progress session state)
   const saved = localStorage.getItem(`vts_progress_${quizStore.currentSession.id}`)
   if (saved) {
     try {

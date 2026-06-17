@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -24,4 +25,6 @@ public class QuizItemResponse {
     // For MultipleChoiceItem
     private String options;
     private String correctAnswer;
+
+    private List<EvaluationResponse> evaluations;
 }

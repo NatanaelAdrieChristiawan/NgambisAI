@@ -112,7 +112,8 @@ export const useQuizStore = defineStore('quiz', () => {
           id: item.id,
           itemType: item.itemType,
           questionText: item.questionText,
-          referenceText: item.referenceText
+          referenceText: item.referenceText,
+          evaluations: item.evaluations || []
         }
 
         // Parse MC options from JSON string
@@ -178,7 +179,8 @@ export const useQuizStore = defineStore('quiz', () => {
           id: item.id,
           itemType: item.itemType,
           questionText: item.questionText,
-          referenceText: item.referenceText
+          referenceText: item.referenceText,
+          evaluations: item.evaluations || []
         }
         if (item.itemType === 'MULTIPLE_CHOICE' && item.options) {
           try {

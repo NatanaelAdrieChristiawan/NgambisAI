@@ -1,6 +1,7 @@
 package com.ngambis.ai.services;
 
 import com.ngambis.ai.dtos.request.QuizSessionRequest;
+import com.ngambis.ai.dtos.response.EvaluationResponse;
 import com.ngambis.ai.dtos.response.GeneratedQuizItemDto;
 import com.ngambis.ai.dtos.response.QuizItemResponse;
 import com.ngambis.ai.dtos.response.QuizSessionResponse;
@@ -205,6 +206,21 @@ public class QuizSessionService {
                     .correctAnswer(mcItem.getCorrectAnswer());
         } else if (item instanceof EssayItem) {
             builder.itemType("ESSAY");
+        }
+
+        if (item.getEvaluations() != null) {
+            List<EvaluationResponse> evs = item.getEvaluations().stream()
+                    .map(ev -> EvaluationResponse.builder()
+                            .id(ev.getId())
+                            .quizItemId(item.getId())
+                            .questionText(item.getQuestionText())
+                            .studentAudioTranscript(ev.getStudentAudioTranscript())
+                            .score(ev.getScore())
+                            .feedback(ev.getFeedback())
+                            .createdAt(ev.getCreatedAt())
+                            .build())
+                    .collect(Collectors.toList());
+            builder.evaluations(evs);
         }
 
         return builder.build();
