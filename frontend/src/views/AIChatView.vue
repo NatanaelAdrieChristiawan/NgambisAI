@@ -74,6 +74,13 @@ async function onPageDrop(e) {
     return
   }
 
+  const MAX_SIZE = 10 * 1024 * 1024 // 10MB
+  if (file.size > MAX_SIZE) {
+    dropUploadError.value = 'Ukuran file melebihi batas maksimal 10MB.'
+    setTimeout(() => { dropUploadError.value = null }, 4000)
+    return
+  }
+
   isDropUploading.value = true
   try {
     const doc = await docStore.uploadDocument(file)

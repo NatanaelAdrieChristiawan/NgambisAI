@@ -8,6 +8,7 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { jwtDecode } from 'jwt-decode'
 import authApi from '@/services/auth.api'
 import router from '@/router'
 
@@ -24,8 +25,25 @@ export const useAuthStore = defineStore('auth', () => {
   const authModalMessage = ref('')
   const authModalRedirect = ref(null)
 
+  // ===== Helpers =====
+
+  /**
+   * Checks if a JWT token is present and not expired.
+   * Uses jwt-decode to read the `exp` claim without signature verification.
+   * A 30-second buffer prevents edge cases where the token expires mid-request.
+   */
+  function isTokenValid(token) {
+    if (!token) return false
+    try {
+      const decoded = jwtDecode(token)
+      return decoded.exp * 1000 > Date.now() + 30000
+    } catch {
+      return false
+    }
+  }
+
   // ===== Getters (Computed) =====
-  const isAuthenticated = computed(() => !!accessToken.value)
+  const isAuthenticated = computed(() => isTokenValid(accessToken.value))
 
   /**
    * Resolves user display name.
@@ -185,6 +203,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
+    localStorage.removeItem('ngambis-auth')  // Clear persisted Pinia state to prevent stale restore
 
     router.push({ name: 'Welcome' })
   }
@@ -215,6 +234,34 @@ export const useAuthStore = defineStore('auth', () => {
    * Checks for existing tokens and fetches profile.
    */
   async function initAuth() {
+    if (!accessToken.value && !refreshToken.value) {
+      // No tokens at all — nothing to restore
+      return null
+    }
+
+    if (!isTokenValid(accessToken.value)) {
+      // Access token expired or missing — try refresh
+      if (isTokenValid(refreshToken.value)) {
+        try {
+          const response = await authApi.refreshToken(refreshToken.value)
+          const { accessToken: newAccess, refreshToken: newRefresh } = response.data.data
+          accessToken.value = newAccess
+          refreshToken.value = newRefresh
+          localStorage.setItem('accessToken', newAccess)
+          localStorage.setItem('refreshToken', newRefresh)
+        } catch {
+          // Refresh failed — force full logout
+          logout()
+          return null
+        }
+      } else {
+        // Both tokens expired — force full logout
+        logout()
+        return null
+      }
+    }
+
+    // Token is valid (original or refreshed) — fetch fresh profile
     if (accessToken.value) {
       await fetchProfile()
     }

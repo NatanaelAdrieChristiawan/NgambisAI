@@ -54,6 +54,13 @@ async function processFile(file) {
     uploadError.value = 'Hanya file PDF yang diizinkan.'
     return
   }
+  
+  const MAX_SIZE = 10 * 1024 * 1024 // 10MB
+  if (file.size > MAX_SIZE) {
+    uploadError.value = 'Ukuran file melebihi batas maksimal 10MB.'
+    return
+  }
+
   try {
     const doc = await docStore.uploadDocument(file)
     docStore.selectDocument(doc.id)
